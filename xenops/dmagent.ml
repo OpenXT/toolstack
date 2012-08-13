@@ -96,6 +96,9 @@ let is_some s =
 	| Some _ -> true
 	| _ -> false
 
+let in_stubdom info =
+	info.Dm.hvm && is_some info.Dm.stubdom
+
 (* Kill domain domid in dmagent dmaid *)
 let kill_domain ~xs domid dmaid =
 	let dompath = domain_path dmaid domid in
@@ -147,6 +150,34 @@ let create_device_serial ~trans info domid dmaid dmid =
 	create_device ~trans domid dmaid dmid "serial";
 	let devpath = (device_path dmaid domid dmid "serial") ^ "/device" in
 	trans.Xst.write devpath info.Dm.serial
+
+
+let create_device_drive ~trans info domid dmaid dmid id disk =
+	if disk.Device.Vbd.dev_type != Device.Vbd.Disk then
+		id
+	else
+	begin
+		let devname = sprintf "disk%d" id in
+		let devpath = (device_path dmaid domid dmid devname) in
+		let file = if in_stubdom info then "/dev/" ^ disk.Device.Vbd.virtpath
+									  else disk.Device.Vbd.physpath in
+		let format = "raw" in (* Handle physical cdrom device *)
+		let media = if disk.Device.Vbd.dev_type = Device.Vbd.CDROM then "cdrom"
+																   else "disk" in
+		(* Handle only IDE for the moment *)
+		let index = match String.explode disk.Device.Vbd.virtpath with
+					| 'h' :: 'd' :: ('a'..'t' as letter) :: _ ->
+							int_of_char letter - int_of_char 'a'
+					| _ ->
+							raise (Dm.Ioemu_failed ("Unhandle disk"))
+		in
+		create_device ~trans domid dmaid dmid "drive" ~devname;
+		trans.Xst.write (devpath ^ "/file") file;
+		trans.Xst.write (devpath ^ "/media") media;
+		trans.Xst.write (devpath ^ "/format") format;
+		trans.Xst.write (devpath ^ "/index") (string_of_int index);
+		id + 1
+	end
 
 let create_device_cdrom ~trans domid dmaid dmid id disk =
 	if disk.Device.Vbd.dev_type != Device.Vbd.CDROM then
@@ -212,6 +243,7 @@ let device_list =
 		"serial";
 		"input";
 		"cdrom";
+		"drive";
 		"net"
 	]
 
@@ -227,11 +259,13 @@ let need_device info device =
 	| "audio" -> info.Dm.hvm && is_some info.Dm.sound
 	| "serial" -> info.Dm.hvm && info.Dm.serial <> ""
 	| "net" -> info.Dm.hvm && info.Dm.nics <> []
-	| "cdrom" -> (in_stubdom info && List.fold_left (fun b disk -> b ||
-					disk.Device.Vbd.dev_type = Device.Vbd.CDROM) false
-					info.Dm.disks)
-				 || (info.Dm.hvm && (in_extras "cdrom-pt-exclusive" info ||
-									 in_extras "cdrom-pt-ro-exclusive" info))
+	| "drive" -> info.Dm.hvm && List.fold_left (fun b disk -> b ||
+								disk.Device.Vbd.dev_type = Device.Vbd.Disk)
+								false info.Dm.disks
+	| "cdrom" -> info.Dm.hvm && in_stubdom info
+							 && List.fold_left (fun b disk -> b ||
+								disk.Device.Vbd.dev_type = Device.Vbd.CDROM)
+								false info.Dm.disks
 	| _ -> false
 
 (* Create the device *)
@@ -241,6 +275,9 @@ let create_device ~trans info domid dmaid dmid device =
 			create_device_sound ~trans info domid dmaid dmid
 	| "serial" ->
 			create_device_serial ~trans info domid dmaid dmid
+	| "drive" ->
+			let f = create_device_drive ~trans info domid dmaid dmid in
+			ignore (List.fold_left f 0 info.Dm.disks)
 	| "cdrom" ->
 		let create_cdrom (k,v) =
 			match v with
