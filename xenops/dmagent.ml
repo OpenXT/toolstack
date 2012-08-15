@@ -151,7 +151,6 @@ let create_device_serial ~trans info domid dmaid dmid =
 	let devpath = (device_path dmaid domid dmid "serial") ^ "/device" in
 	trans.Xst.write devpath info.Dm.serial
 
-
 let create_device_drive ~trans info domid dmaid dmid id disk =
 	if disk.Device.Vbd.dev_type != Device.Vbd.Disk then
 		id
@@ -316,7 +315,9 @@ let create_devmodel ~xs ~timeout info domid dmaid dmid dminfo =
 
 (* Create a stubdomain with dm-agent inside *)
 let create_stubdomain ~xc ~xs ~timeout info target_domid uuid =
-	let args = ["dmagent"; sprintf "%u" target_domid] in
+	let use_qemu_dm = try ignore (Unix.stat "/config/qemu-dm"); [ "qemu-dm" ]
+					  with _ -> [] in
+	let args = ["dmagent"; sprintf "%u" target_domid] @ use_qemu_dm in
 	let stubdom_domid = Dm.create_dm_stubdom ~xc ~xs args info target_domid uuid in
 	(* Wait that dm-agent has been created *)
 	let waitpath = dmagent_path (string_of_int stubdom_domid) "capabilities" in
