@@ -191,24 +191,17 @@ let create_device_cdrom ~trans domid dmaid dmid id disk =
 		id + 1
 	end
 
-let create_device_cdrom_pt ~trans info domid dmaid dmid cdrompt =
-	let kind,bsg = match cdrompt with
-		| Cdrompt   x -> ("pt-exclusive",x)
-		| CdromptRO x -> ("pt-ro-exclusive",x) in
-	let bsgstr =
-		let a,b,c,d = bsg in
-		sprintf "%d_%d_%d_%d" a b c d
-	in
-	let devname = "cdrom-" ^ kind ^ "-" ^ bsgstr in
+let create_device_cdrom_pt ~trans info domid dmaid dmid kind =
+	let devname = "cdrom-" ^ kind in
 	let devpath = (device_path dmaid domid dmid devname) ^ "/device" in
 	let optpath = (device_path dmaid domid dmid devname) ^ "/option" in
-	let bsgdev = bsgpath bsg in
-	create_device ~trans domid dmaid dmid "cdrom" ~devname;
-	trans.Xst.write devpath bsgdev;
-	trans.Xst.write optpath kind
+	let equal (e, _) = (compare e devname) == 0 in
+	let (_, opt) = List.find equal info.Dm.extras in
+		create_device ~trans domid dmaid dmid "cdrom" ~devname;
+		trans.Xst.write devpath (get opt);
+		trans.Xst.write optpath kind
 
-let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
-												  is_wireless, id) =
+let create_device_net ~trans domid dmaid dmid id (mac, (_, bridge), model, _) =
 	let modelstr =
 		match model with
 		| None -> "rtl8139"
@@ -261,10 +254,11 @@ let need_device info device =
 	| "drive" -> info.Dm.hvm && List.fold_left (fun b disk -> b ||
 								disk.Device.Vbd.dev_type = Device.Vbd.Disk)
 								false info.Dm.disks
-	| "cdrom" -> info.Dm.hvm && in_stubdom info
-							 && List.fold_left (fun b disk -> b ||
-								disk.Device.Vbd.dev_type = Device.Vbd.CDROM)
-								false info.Dm.disks
+	| "cdrom" -> (in_stubdom info && List.fold_left (fun b disk -> b ||
+					disk.Device.Vbd.dev_type = Device.Vbd.CDROM) false
+					info.Dm.disks)
+				 || (info.Dm.hvm && (in_extras "cdrom-pt-exclusive" info ||
+									 in_extras "cdrom-pt-ro-exclusive" info))
 	| _ -> false
 
 (* Create the device *)
@@ -278,15 +272,15 @@ let create_device ~trans info domid dmaid dmid device =
 			let f = create_device_drive ~trans info domid dmaid dmid in
 			ignore (List.fold_left f 0 info.Dm.disks)
 	| "cdrom" ->
-		let create_cdrom (k,v) =
-			match v with
-			| None -> ()
-			| Some value ->
-				match parse_cdrompt_spec (k,value) with
-				| Some cdrompt -> create_device_cdrom_pt ~trans info domid dmaid dmid cdrompt
-				| _ -> ()
-		in
-		List.iter create_cdrom info.Dm.extras
+		if in_extras "cdrom-pt-exclusive" info then
+			create_device_cdrom_pt ~trans info domid dmaid dmid "pt-exclusive";
+		if in_extras "cdrom-pt-ro-exclusive" info then
+			create_device_cdrom_pt ~trans info domid dmaid dmid "pt-ro-exclusive";
+		if in_stubdom info then
+			begin
+				let f = create_device_cdrom ~trans domid dmaid dmid in
+				ignore (List.fold_left f 0 info.Dm.disks);
+			end;
 	| "net" ->
 			let f = create_device_net ~trans domid dmaid dmid in
 			List.iter f info.Dm.nics
