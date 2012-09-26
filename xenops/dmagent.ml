@@ -201,7 +201,8 @@ let create_device_cdrom_pt ~trans info domid dmaid dmid kind =
 		trans.Xst.write devpath (get opt);
 		trans.Xst.write optpath kind
 
-let create_device_net ~trans domid dmaid dmid id (mac, (_, bridge), model, _) =
+let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
+												  is_wireless, id) =
 	let modelstr =
 		match model with
 		| None -> "rtl8139"
@@ -221,6 +222,8 @@ let create_device_net ~trans domid dmaid dmid id (mac, (_, bridge), model, _) =
 	trans.Xst.write idpath (sprintf "%u" id);
 	trans.Xst.write namepath (sprintf "%s%u" (if is_wireless then "vwif" else
 						  	  "vif") id)
+let in_extras v info =
+	List.exists (fun (e, _) -> (compare e v) == 0) info.Dm.extras
 
 (* List of all possible device *)
 let device_list =
