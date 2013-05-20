@@ -208,9 +208,11 @@ let create_device_cdrom_pt ~trans info domid dmaid dmid kind =
 
 let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
 												  is_wireless, id) =
+	let use_net_device_model = try ignore (Unix.stat "/config/e1000"); "e1000"
+					  with _ -> "rtl8139" in
 	let modelstr =
 		match model with
-		| None -> "rtl8139"
+		| None -> use_net_device_model
 		| Some m -> m
 	in
 	let devname = sprintf "net%d" id in
