@@ -239,13 +239,17 @@ let device_list =
 		"input";
 		"cdrom";
 		"drive";
-		"net"
+		"net";
+		"xenmou"
 	]
 
 (* Indicate if we need the device *)
 let need_device info device =
+	let may_I_use_qemu_dm = try ignore (Unix.stat "/config/qemu-dm"); true
+				with _ -> false in
 	match device with
 	| "xenfb" | "input" -> not info.Dm.hvm
+	| "xenmou" -> info.Dm.hvm && may_I_use_qemu_dm
 	| "svga" -> info.Dm.hvm && in_extras "std-vga" info
 	| "xengfx" -> info.Dm.hvm && in_extras "xengfx" info
 	| "vgpu" -> info.Dm.hvm && in_extras "vgpu" info
