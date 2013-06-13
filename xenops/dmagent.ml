@@ -225,6 +225,31 @@ let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
 let in_extras v info =
 	List.exists (fun (e, _) -> (compare e v) == 0) info.Dm.extras
 
+(* Create a device for each PCI which would like to passthrough for the guest
+ *
+ * -1- compute the data information directly in the format needed for QEMU
+ *     TODO: should we have to change the format and write each information
+ *     separatly in XenStore and ensure that dm-agent will deal correctly with
+ *     that ?
+ *     I mean: it is not the work of XenClient toolstack to launch the qemu,
+ *     then it's not the work of XenClient toolstack to format this option for
+ *     QEMU *)
+let create_devices_xen_pci_passthrough ~trans domid dmaid dmid (pci_id, pci_list) =
+	let create_device_xen_pci_passthrough id pci_dev =
+		let pci_get_bdf_string desc = (* -1- *)
+			sprintf "%04x:%02x:%02x.%02x"
+			desc.Device.PCI.domain desc.Device.PCI.bus desc.Device.PCI.slot desc.Device.PCI.func
+		in
+		let pci_bdf = pci_get_bdf_string pci_dev.Device.PCI.desc in
+		let devname = sprintf "xen_pci_pt-%d" id in
+		let devpath = device_path dmaid domid dmid devname in
+		let hostaddrpath = devpath ^ "/hostaddr" in
+		create_device ~trans domid dmaid dmid "xen_pci_pt" ~devname;
+		trans.Xst.write hostaddrpath pci_bdf;
+		id + 1
+	in
+	ignore (List.fold_left create_device_xen_pci_passthrough 0 pci_list)
+
 (* List of all possible device *)
 let device_list =
 	[
@@ -240,16 +265,16 @@ let device_list =
 		"cdrom";
 		"drive";
 		"net";
+		"xen_pci_pt";
 		"xenmou"
 	]
 
 (* Indicate if we need the device *)
 let need_device info device =
-	let may_I_use_qemu_dm = try ignore (Unix.stat "/config/qemu-dm"); true
-				with _ -> false in
 	match device with
 	| "xenfb" | "input" -> not info.Dm.hvm
-	| "xenmou" -> info.Dm.hvm && may_I_use_qemu_dm
+	| "xenmou" -> info.Dm.hvm
+	| "xen_pci_pt" -> info.Dm.hvm
 	| "svga" -> info.Dm.hvm && in_extras "std-vga" info
 	| "xengfx" -> info.Dm.hvm && in_extras "xengfx" info
 	| "vgpu" -> info.Dm.hvm && in_extras "vgpu" info
@@ -291,6 +316,9 @@ let create_device ~trans info domid dmaid dmid device =
 	| "net" ->
 			let f = create_device_net ~trans domid dmaid dmid in
 			List.iter f info.Dm.nics
+	| "xen_pci_pt" ->
+			let f = create_devices_xen_pci_passthrough ~trans domid dmaid dmid in
+			List.iter f info.Dm.pcis
 	| _ -> (* By default create the device without option *)
 			create_device ~trans domid dmaid dmid device
 
