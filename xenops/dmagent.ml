@@ -266,7 +266,8 @@ let device_list =
 		"drive";
 		"net";
 		"xen_pci_pt";
-		"xenmou"
+		"xenmou";
+		"xenbattery"
 	]
 
 (* Indicate if we need the device *)
@@ -274,6 +275,7 @@ let need_device info device =
 	match device with
 	| "xenfb" | "input" -> not info.Dm.hvm
 	| "xenmou" -> info.Dm.hvm
+	| "xenbattery" -> info.Dm.hvm
 	| "xen_pci_pt" -> info.Dm.hvm
 	| "svga" -> info.Dm.hvm && in_extras "std-vga" info
 	| "xengfx" -> info.Dm.hvm && in_extras "xengfx" info
