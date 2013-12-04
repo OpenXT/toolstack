@@ -158,7 +158,12 @@ let create_device_drive ~trans info domid dmaid dmid id disk =
 	begin
 		let devname = sprintf "disk%d" id in
 		let devpath = (device_path dmaid domid dmid devname) in
-		let file = if in_stubdom info then "/dev/" ^ disk.Device.Vbd.virtpath
+		let character = match String.explode disk.Device.Vbd.virtpath with
+					| 'h' :: 'd' :: x :: _ -> x
+					| _ ->
+							raise (Dm.Ioemu_failed ("Unhandle disk"))
+		in
+		let file = if in_stubdom info then "/dev/xvd" ^ (Printf.sprintf "%c" character)
 									  else disk.Device.Vbd.physpath in
 		let format = "raw" in (* Handle physical cdrom device *)
 		let media = if disk.Device.Vbd.dev_type = Device.Vbd.CDROM then "cdrom"
