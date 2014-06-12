@@ -1,0 +1,15 @@
+JSON_FILES[] =
+	json
+	json_parse
+	json_conv
+
+LIB = json
+JSON_LIB = $(OCamlLibrary $(LIB), $(JSON_FILES))
+
+.DEFAULT: $(JSON_LIB)
+
+.PHONY: clean
+clean:
+	$(CLEAN) $(JSON_LIB)
+
+.SUBDIRS: parser_tests

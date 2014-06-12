@@ -1,0 +1,433 @@
+{ "use_modules": ["xenvm_proto", "xenvm_proto_json"]}
+
+{ "server_name": "xenvm_control",
+  "server_doc": "This module describes the messages in the protocol from XenVM to XenMgr.",
+  "server_error_handler": "xenvm_error_handler"
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "Cmd.Quit",
+                   "request_doc": "Commands XenVM to exit.",
+                   "request_handler": "quit_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "cmd_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "Cmd.ReadConfig",
+                   "request_doc": "Commands XenVM to (re) load the specified config.",
+                   "request_handler": "read_config_handler",
+                   "request_params": [ { "param_name": "location",
+                                         "param_doc": "",
+                                         "param_type": "string" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "cmd_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Start",
+                   "request_doc": "",
+                   "request_handler": "vm_start_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Pause",
+                   "request_doc": "",
+                   "request_handler": "vm_pause_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Unpause",
+                   "request_doc": "",
+                   "request_handler": "vm_unpause_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Reboot",
+                   "request_doc": "",
+                   "request_handler": "vm_reboot_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Restart",
+                   "request_doc": "",
+                   "request_handler": "vm_restart_handler",
+                   "request_params": [ { "param_name": "force",
+					 "param_doc": "",
+					 "param_type": "bool" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Halt",
+                   "request_doc": "",
+                   "request_handler": "vm_halt_handler",
+                   "request_params": [ { "param_name": "force",
+					 "param_doc": "",
+					 "param_type": "bool" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Suspend",
+                   "request_doc": "",
+                   "request_handler": "vm_suspend_handler",
+                   "request_params": [ { "param_name": "flags",
+					 "param_doc": "",
+					 "param_type": "suspend_flags" },
+				       { "param_name": "location",
+					 "param_doc": "",
+					 "param_type": "file_location" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Restore",
+                   "request_doc": "",
+                   "request_handler": "vm_restore_handler",
+                   "request_params": [ { "param_name": "flags",
+					 "param_doc": "",
+					 "param_type": "restore_flags" },
+				       { "param_name": "location",
+					 "param_doc": "",
+					 "param_type": "file_location" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Checkpoint",
+                   "request_doc": "",
+                   "request_handler": "vm_checkpoint_handler",
+                   "request_params": [ { "param_name": "location",
+					 "param_doc": "",
+					 "param_type": "file_location" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.GetStatus",
+                   "request_doc": "",
+                   "request_handler": "vm_getstatus_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vm_getstatus_handler",
+                    "response_value": { "param_name": "status",
+                                        "param_doc": "Current VM state",
+                                        "param_type": "vmstate"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.GetVNC",
+                   "request_doc": "",
+                   "request_handler": "vm_getvnc_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vm_getvnc_handler",
+                    "response_value": { "param_name": "status",
+                                        "param_doc": "Current VM state",
+                                        "param_type": "vmstate"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.GetDomId",
+                   "request_doc": "",
+                   "request_handler": "vm_getdomid_handler",
+                   "request_params": [ ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vm_getdomid_handler",
+                    "response_value": { "param_name": "domid",
+                                        "param_doc": "",
+                                        "param_type": "int"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "Device.Plug",
+                   "request_doc": "",
+                   "request_handler": "device_plug_handler",
+                   "request_params": [ { "param_name": "device",
+                                         "param_doc": "",
+                                         "param_type": "device" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "devop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "Device.Unplug",
+                   "request_doc": "",
+                   "request_handler": "device_unplug_handler",
+                   "request_params": [ { "param_name": "device",
+                                         "param_doc": "",
+                                         "param_type": "device" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "devop_response_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "Device.List",
+                   "request_doc": "",
+                   "request_handler": "device_list_handler",
+                   "request_params": [ { "param_name": "devtype",
+                                         "param_doc": "",
+                                         "param_type": "device_type" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "device_list_response_handler",
+                    "response_value": { "param_name": "device_list",
+                                        "param_doc": "",
+                                        "param_type": "device_list"
+                                      }
+                  }
+}
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.State.Get",
+                   "request_doc": "",
+                   "request_handler": "vmstate_get_handler",
+                   "request_params": [ { "param_name": "field",
+                                         "param_doc": "",
+                                         "param_type": "string" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmstate_get_handler",
+                    "response_value": { "param_name": "value",
+                                        "param_doc": "",
+                                        "param_type": "string"
+                                      }
+                  }
+}
+
+
+{ "rpc_type": "rpc",
+  "rpc_server": "xenvm_control",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.State.Set",
+                   "request_doc": "",
+                   "request_handler": "vmstate_set_handler",
+                   "request_params": [ { "param_name": "field",
+                                         "param_doc": "",
+                                         "param_type": "string" },
+				       { "param_name": "value",
+                                         "param_doc": "",
+                                         "param_type": "string" }
+				     ]
+                 },
+
+  "rpc_response": { "response_doc": "",
+                    "response_handler": "vmstate_set_handler",
+                    "response_value": { "param_name": "resp",
+                                        "param_doc": "",
+                                        "param_type": "rpc_result"
+                                      }
+                  }
+}
+

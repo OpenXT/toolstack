@@ -1,0 +1,80 @@
+#! /bin/sh
+#
+# Copyright (c) 2008 Citrix Systems, Inc.
+# 
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+# 
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#
+
+### BEGIN INIT INFO
+# Provides:		xenmgr
+# Required-Start:	
+# Required-Stop:	
+# Default-Start:	2 3 4 5
+# Default-Stop:		1
+# Short-Description:	Xen Manager Daemon
+### END INIT INFO
+
+set -e
+
+test -x /usr/sbin/xenmgr || exit 0
+
+. /lib/lsb/init-functions
+
+XENMGR_OPTS="--config /var/lib/xenmgr"
+
+if [ -n "$2" ]; then
+    XENMGR_OPTS="$XENMGR_OPTS $2"
+fi
+
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+case "$1" in
+start)
+	log_daemon_msg "Starting XenMgr server" "xenmgr"
+	if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/xenmgr.pid --exec /usr/sbin/xenmgr -- $XENMGR_OPTS; then
+	    log_end_msg 0
+	else
+	    log_end_msg 1
+	fi
+	;;
+  stop)
+	log_daemon_msg "Stopping XenMgr server" "xenmgr"
+	if start-stop-daemon --stop --quiet --oknodo --pidfile /var/run/xenmgr.pid; then
+	    log_end_msg 0
+	else
+	    log_end_msg 1
+	fi
+	;;
+
+  restart)
+	log_daemon_msg "Restarting XenMgr server" "xenmgr"
+	start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile /var/run/xenmgr.pid
+	if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/xenmgr.pid --exec /usr/sbin/xenmgr -- $XENMGR_OPTS; then
+	    log_end_msg 0
+	else
+	    log_end_msg 1
+	fi
+	;;
+
+  status)
+	status_of_proc -p /var/run/xenmgr.pid /usr/sbin/xenmgr xenmgr && exit 0 || exit $?
+	;;
+
+  *)
+	log_action_msg "Usage: /etc/init.d/xenmgr {start|stop|restart|status}"
+	exit 1
+esac
+
+exit 0

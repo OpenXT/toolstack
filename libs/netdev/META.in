@@ -1,0 +1,4 @@
+version = "@VERSION@"
+description = "Netdev"
+archive(byte) = "netdev.cma"
+archive(native) = "netdev.cmxa"

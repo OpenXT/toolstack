@@ -1,0 +1,13 @@
+OCAMLFLAGS += -I $(JSON_LIB_DIR)
+
+JSONRPC_FILES[] =
+	jsonrpc
+
+LIB = jsonrpc
+JSONRPC_LIB = $(OCamlLibrary $(LIB), $(JSONRPC_FILES))
+
+.DEFAULT: $(JSONRPC_LIB)
+
+.PHONY: clean
+clean:
+	$(CLEAN) $(JSONRPC_LIB)

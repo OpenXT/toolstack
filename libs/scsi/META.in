@@ -1,0 +1,4 @@
+version = "@VERSION@"
+description = "SCSI interface extension"
+archive(byte) = "scsi.cma"
+archive(native) = "scsi.cmxa"

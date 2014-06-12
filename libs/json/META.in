@@ -1,0 +1,4 @@
+version = "@VERSION@"
+description = "JSON data"
+archive(byte) = "json.cma"
+archive(native) = "json.cmxa"

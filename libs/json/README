@@ -1,0 +1,145 @@
+This directory contains an incremental JSON parser, a JSON<->OCaml
+conversion function generator, and a JSON-RPC boilerplate generator.
+
+JSON parser:
+------------
+
+The parser is incremental in the sense that it can take pieces of
+input strings at a time that do not comprise a complete json value.
+This is useful when the json value is produced piecemeal, for example,
+when it arrives over a network.
+
+After consuming each string, the parser returns either (a) a
+notification that it needs more input to complete parsing a value, or
+(b) a parsed json value (along with any remaining unconsumed part of
+the input), or (c) a parsing exception.
+
+
+JSON <-> OCaml conversion function generator:
+---------------------------------------------
+
+The generator (in gen/json_conv/) takes as input a file containing _only_ OCaml
+type definitions, and generates an output file containing functions to
+convert ocaml values of the specified types to and from json values.
+
+The input type definitions can only use a restriction of the Ocaml
+type language, specified below:
+
+    base_type := <string> | <int> | <int64> | <float> | <bool>
+
+    type_expr := base_type
+               | type_expr 'option'
+               | '{' field ':' type_expr ';' field ':' type_expr  ... }
+               | type_expr 'array'
+               | type_expr 'list'
+               | type_expr '*' type_expr
+               | constr_type_expr { '|' constr_type_expr }
+
+    constr_type_expr := constr_name
+                      | constr_name 'of' type_expr { '*' type_expr }
+
+That is, only mono-morphic types constructed from the specified base
+types are allowed; function types, polymorphic types or polymorphic
+variants, classes and exceptions are not handled, and result in parse
+errors.
+
+The "None" value of an option type is mapped to the json "null" value.
+
+The generated functions are named <ocaml_type>_of_json and
+<ocaml_type>_to_json for each input type defined.  *_of_json functions
+can fail with a conversion exception.
+
+The encoding is as follows:
+
+enc:                    ocaml.t -> json.t
+
+base types:
+ <string>        	        -> <string>
+ <int> | <int64> 	        -> <number>
+ <float>         	        -> <number>
+ <bool>          	        -> true | false
+
+options:
+ Some <type>     	        -> enc(<type>)
+ None            	        -> null
+
+records:
+ {field1 = <type1>;             -> {"field1": enc(<type1>),
+  field2 = <type2>;                 "field2": enc(<type2>),
+  ... }                              ...}
+
+arrays/lists:
+ [<type>; <type>; ...]          -> [enc(<type>), enc(<type>), ...]
+ [|<type>; <type>; ...|]
+
+tuples:
+ (<type1>,<type2>,...)          -> [enc(<type1>), enc(<type2>), ...]
+
+variants:                       
+  Constr1                       -> ["Constr1"]
+| Constr2 <type>                   ["Constr2", enc(<type>)]
+| Constr3 (<type1>,<type2>)        ["Constr3", enc(<type1>), enc(<type2>)]
+
+
+The input file can specify some pragmas to control the generated code.
+A pragma is specified in the form:
+
+(*** json-pragma:  pragma  ***)
+^^^^^^^^^^^^^^^^^^        ^^^^^
+Note that specified characters (including spaces) must appear exactly
+as shown.
+
+A "set_record_prefix=p" pragma allows a prefix p to be trimmed from all
+fields of an ocaml record type before generating the corresponding
+json object, and added back when converting back from json.  The
+code-generator reports an error if a record field doesn't possess the
+specified prefix.  A "clear_record_prefix" pragma unsets this pragma.
+
+A "use_converter prefix for type" pragma allows the
+specification of alternate converter functions
+prefix_{to_json,of_json} for a specified type, instead of the default
+type_{to_json,of_json}.
+
+A "open module" pragma inserts an "open module" into the generated
+code.
+
+
+JSON-RPC boilerplate generator:
+-------------------------------
+
+This uses the following spec for JSON-RPC:
+
+The JSON-RPC spec being considered here is:
+http://groups.google.com/group/json-rpc/web/json-rpc-1-2-proposal
+
+This generator (in gen/rpc/) takes JSON-RPC definitions specified in a
+json-format, and generates the client-side boilerplate to invoke, and
+the server-side boilerplate to implement, these RPCs.
+
+The definitions specify the name and type of the JSON-RPC:
+notification or procedure call (or method-call), the names and types
+of the arguments, and, only for procedure calls: the type of the
+response.  Documentation annotations can be specified for each call,
+its arguments and return value.
+
+The client-side generated code provides a wrapper function for each
+rpc that takes native ocaml arguments of the specified type, converts
+them into json values, and returns a value of type
+Json_rpc.rpc_request.  This can be converted into a json-rpc value
+using Json_rpc.rpc_request_to_json, and sent over the wire.
+
+The server-side generated code provides a dispatch function, that
+takes a json-rpc value, extracts the method or notification name,
+converts the supplied parameters into native ocaml values that those
+functions expect according to the specificaton, and invokes them with
+those argument values.
+
+These definitions are organized by server-endpoint, and a definition
+is also required for each server that specifies a error-handler
+function that catches exceptions thrown by the invoked rpc code, and
+returns values of type Json_rpc.rpc_error.  Note that exceptions are
+not handled for notifications, and that the application will see and
+need to handle these exceptions.
+
+The generated code collects the boilerplate into modules named after
+the server-endpoints.

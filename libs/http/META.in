@@ -1,0 +1,4 @@
+version = "@VERSION@"
+description = "HTTP parser"
+archive(byte) = "http.cma"
+archive(native) = "http.cmxa"

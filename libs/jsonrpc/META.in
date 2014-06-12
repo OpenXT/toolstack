@@ -1,0 +1,4 @@
+version = "@VERSION@"
+description = "JSON RPC"
+archive(byte) = "jsonrpc.cma"
+archive(native) = "jsonrpc.cmxa"

@@ -1,0 +1,13 @@
+OCAMLFLAGS += -I $(JSON_LIB_DIR)
+
+OCAML_LIBS += $(JSON_LIB_DIR)/json
+
+TEST_PARSER_PROG = test_parser
+TEST_PARSER = $(OCamlProgram $(TEST_PARSER_PROG), test_parser)
+
+.DEFAULT: $(TEST_PARSER)
+
+
+.PHONY: clean
+clean:
+	$(CLEAN) $(TEST_PARSER)

@@ -1,0 +1,197 @@
+= Description
+
+xenvm is a single VM monitor. it's a single process that follow the life of
+a VM, and open a command socket where you can send command, just like xm to xend
+
+xenvm expose the uuid of the domain to outside world, so instead of having to
+refer to the domid of the domain, all outside command use the uuid. the uuid
+beeing stable, all command will use the same uuid after reboot/suspend/resume
+cycle.
+
+= Config file
+
+you can put the following parameters in your config file:
+
+(common options)
++====================+======+=======================================================+
+| key name           | type | description                                           |
++====================+======+=======================================================+
+| hvm                | s    | command line given to the kernel                      |
++--------------------+------+-------------------------------------------------------+
+| startup            | s    | specify what to do with the domain at startup         |
+|                    |      | possibles value: started, paused, shutdown or         |
+|                    |      | restore <file>                                        |
++--------------------+------+-------------------------------------------------------+
+| debug              | b    | logs all operations to /tmp/xenvm-debug-%uuid         |
++--------------------+------+-------------------------------------------------------+
+| uuid               | s    | specify the domain uuid (default to autogeneration)   |
++--------------------+------+-------------------------------------------------------+
+| on_crash           | s    | specify the action to be taken after notifying a      |
+| on_halt            | s    | crash/halt/reboot. possible values:                   |
+| on_reboot          | s    | preserve, reboot, destroy                             |
++--------------------+------+-------------------------------------------------------+
+| kernel             | s    | specify where to find the kernel to boot              |
+|                    |      | (can be empty for hvm. default to hvmloader)          |
++--------------------+------+-------------------------------------------------------+
+| memory             | i    | specify the memory given to the guest in megabytes    |
++--------------------+------+-------------------------------------------------------+
+| vcpus              | i    | number of vcpus available to the guest                |
++--------------------+------+-------------------------------------------------------+
+| disk               | s    | add a virtual disk.                                   |
+|                    |      | format: physpath:phystype:virtpath:mode:devty[:k=v...]|
+|                    |      | - physpath: path to the disk image, raw device, ..    |
+|                    |      | - phystype:  phy | qcow | aio | file | vhd            |
+|                    |      | - virtpath: hd(a-d) | sd(a-.) | xvd(a-p)              |
+|                    |      | - mode: r | w                                         |
+|                    |      | - devtype = cdrom | disk                              |
+|                    |      | - extra k=v arguments (cipher, key-size, key-file)    |
++--------------------+------+-------------------------------------------------------+
+| nic                | s    | add a virtual nic.                                    |
+|                    |      | format: key=value,key=value,... (can be empty)        |
+|                    |      | supported key: bridge, mac, id                        |
+|                    |      | examples:                                             |
+|                    |      | "nic = bridge=xen-br0,mac=ab:de:fe:dc:ba:ab"          |
+|                    |      | "nic = mac=ab:de:fe:dc:ba:ab"                         |
+|                    |      | "nic = "                                              |
++--------------------+------+-------------------------------------------------------+
+| pci                | s    | add a pci device.                                     |
+|                    |      | format: devid,bind,domain:bus:device.function         |
+|                    |      |                                                       |
++--------------------+------+-------------------------------------------------------+
+| serial             | s    | redirect serial to device or network tcp:ip:port      |
+|                    |      | ex: "pty" or "tcp:1.2.3.4:1234"                       |
++--------------------+------+-------------------------------------------------------+
+| display            | s    | details the type of display available for the guest   |
+|                    |      | format: <protocol>:key[=value],key[=value],...        |
+|                    |      | possible values:                                      |
+|                    |      | - none                                                |
+|                    |      | - vnc (keys allowed: use-port-unused, keymap, port)   |
+|                    |      | - sdl                                                 |
+|                    |      | - intel                                               |
++--------------------+------+-------------------------------------------------------+
+
+
+(the following are just useful for pv)
++====================+======+=======================================================+
+| key name           | type | description                                           |
++====================+======+=======================================================+
+| cmdline            | s    | command line given to the kernel                      |
++--------------------+------+-------------------------------------------------------+
+| initrd             | s    | specify the initrd use, leave empty for none          |
++--------------------+------+-------------------------------------------------------+
+
+
+(the following are just useful for hvm)
+
++====================+======+=======================================================+
+| key name           | type | description                                           |
++====================+======+=======================================================+
+| pae                | b    | specify that the guest is using PAE                   |
++--------------------+------+-------------------------------------------------------+
+| acpi               | b    | specify that the guest is using ACPI                  |
++--------------------+------+-------------------------------------------------------+
+| apic               | b    | specify that the guest is using APIC                  |
++--------------------+------+-------------------------------------------------------+
+| nx                 | b    | specify that the guest is using NX                    |
++--------------------+------+-------------------------------------------------------+
+| smbios-pt          | b    | specify that the guest is using smbios pass-through   |
++--------------------+------+-------------------------------------------------------+
+| smbios-oem-type-pt | i,   | tables number to passthrough                          |
++--------------------+------+-------------------------------------------------------+
+| acpi-pt            | b    | specify that the guest is using ACPI pass-through     |
++--------------------+------+-------------------------------------------------------+
+| diskinfo-pt        | b    | specify the guest is using SCSI diskinfo pass-through |
++--------------------+------+-------------------------------------------------------+
+| boot               | s    | specify the qemu boot string                          |
++--------------------+------+-------------------------------------------------------+
+| extra-hvm          | k=v, | specify extra arguments passthrough to qemu as -k v   |
++--------------------+------+-------------------------------------------------------+
+| power-management   | i    | specify the power management passthrough mode         |
+|                    |      | - 1 : pass-through mode (limited scope)               |
+|                    |      | - 2 : non pass-through mode (in doubt use this)       |
++--------------------+------+-------------------------------------------------------+
+| oem-features       | i    | specify whether or not to pass through oem features.  |
+|                    |      | Note: At the moment any integer value can be passed   |
+|                    |      | but this is likely to change in future especially if  |
+|                    |      | we decide to pass through a subset of oem features    |
+|                    |      | and let user configure that subset.                   |
++--------------------+------+-------------------------------------------------------+
+| timer-mode         | i    | specify the timer mode used.                          |
++--------------------+------+-------------------------------------------------------+
+| timeoffset         | s    | specify the time offset (i.e. timezone) used.         |
++--------------------+------+-------------------------------------------------------+
+| pci-msitranslate   | i    | specify whether to use MSI-INTx translation for guest.|
++--------------------+------+-------------------------------------------------------+
+|pci-power-management| i    | specify whether or not to enable Dx power management  |
+|                    |      | for passthrough devices.                              |
++--------------------+------+-------------------------------------------------------+
+| inject-sci         | i    | specify whether or not to inject SCIs like lid close, |
+|                    |      | power button press to guest. (Default: no injection)  |
++--------------------+------+-------------------------------------------------------+
+
+
+= Sending command to the monitor
+
+xenvm bind a unix socket to the uuid specified/generated
+You can easily send command to the monitor with xenvm-cmd using the simple
+syntax:
+
+	xenvm-cmd <uuid> <cmds> <args>
+
+The following command are supported:
+
+	- help
+	- pause
+	- unpause
+	- destroy
+	- start
+	- suspend file=<file>
+	- suspend file=<file> live=true
+	- restore file=<file>
+	- checkpoint <file>
+	- shutdown
+	- restart
+	- quit (quit the monitor leaving the vm untouched)
+
+= Running with xen-unstable
+
+It's possible to run with xen-unstable directly, but you need the
+qemu-dm-wrapper script and xenguest binary in /usr/bin/.
+They are available in xenguest/xenguest and scripts/qemu-dm-wrapper
+in the toolstack.git repository.
+
+And you need to replace your udev rules by the one available in
+scripts/xen-backend.rules and scripts/xen-frontend.rules and add the
+scripts/tap scripts/block scripts/block-front scripts/vif into
+/etc/xensource/scripts/
+
+Also note that since xen-unstable doesn't have the dm-ready patch,
+hvm domain takes unfortunately a substantial time (around 20s.) to start.
+
+= Example of config
+
+PV config with one LVM disk called 'test' and one VIF :
+
+----8<----
+uuid = 00000000-0000-0000-0000-000000000001
+hvm = false
+kernel = /boot/vmlinuz-2.6.18-xenU
+cmdline = root=/dev/sda1 ro
+memory = 64
+disk = /dev/vg/test:phy:sda:w:disk
+vif =
+----8<----
+
+HVM config for installing a windows 2k3 from iso on a LVM disk called 'testhvm':
+
+----8<----
+uuid = 00000000-0000-0000-0000-000000000002
+hvm = true
+memory = 256
+disk = /dev/vg/testhvm:phy:hda:w:disk
+disk = /var/opt/xen/iso_import/w2k3eesp2.iso:file:hdd:r:cdrom
+boot = dc
+pae = true
+acpi = true
+apic = true
+----8<----

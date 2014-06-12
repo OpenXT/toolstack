@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# Copyright (c) 2008 Citrix Systems, Inc.
+# 
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+# 
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#
+
+if [ $# -ne 1 ]; then
+	echo "usage: $0 <vmuuid>"
+	exit 1
+fi
+
+# hibernate the vm if we can
+state=`xe vm-list uuid=$1 params=power-state --minimal`
+if [ "${state}" == "running" ]; then
+	domid=`xe vm-list uuid=$1 params=dom-id --minimal`
+	echo xenstore-write /local/domain/${domid}/control/shutdown hibernate > /dev/null
+fi
+
+vbds=`xe vbd-list vm-uuid=$1 --minimal`
+IFS=","
+for i in ${vbds}; do
+	type=`xe vbd-list uuid=$i params=type --minimal`
+	if [ $type != "CD" ]; then
+		vdi=`xe vbd-list uuid=$i params=vdi-uuid --minimal`
+		sr=`xe vdi-list uuid=$vdi params=sr-uuid --minimal`
+		echo "/var/run/sr-mount/$sr/${vdi}.vhd"
+	fi
+done;
+unset IFS

@@ -1,0 +1,4 @@
+version = "@VERSION@"
+description = "Common files for toolstack layer"
+archive(byte) = "tscommon.cma"
+archive(native) = "tscommon.cmxa"

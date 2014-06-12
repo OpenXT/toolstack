@@ -1,0 +1,19 @@
+
+CLEAN = rm -f *.annot *.cmi *.cmo *.cmxa *.cmx *.o *.a *.opt
+
+JSON_LIB_DIR      = $(dir libs/json)
+JSON_GEN_CONV_DIR = $(dir gen/json_conv)
+JSON_RPC_LIB_DIR  = $(dir libs/jsonrpc)
+JSON_GEN_RPC_DIR  = $(dir gen/rpc)
+
+HTTP_LIB_DIR      = $(dir libs/http)
+
+OCAMLFLAGS += -dtypes
+
+.SUBDIRS: libs/json libs/jsonrpc libs/http
+
+.SUBDIRS: gen/json_conv
+	include OMakefile
+	export
+
+.SUBDIRS: gen/rpc

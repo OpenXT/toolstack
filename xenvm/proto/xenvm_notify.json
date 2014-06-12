@@ -1,0 +1,50 @@
+{ "use_modules": ["xenvm_proto", "xenvm_proto_json"]}
+
+{ "server_name": "xenvm_monitor",
+  "server_doc": "This module describes the notification messages emitted by XenVM.",
+  "server_error_handler": "xenvm_error_handler"
+}
+
+{ "rpc_type": "notification",
+  "rpc_server": "xenvm_monitor",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "Proto.Hup",
+                   "request_doc": "This is the last message sent on the connection before a clean exit.",
+                   "request_handler": "hup_handler",
+                   "request_params": []
+                 }
+}
+
+{ "rpc_type": "notification",
+  "rpc_server": "xenvm_monitor",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Status",
+                   "request_doc": "This is usually sent when the VM changes its state, but is also sent on startup.",
+                   "request_handler": "vm_status_handler",
+                   "request_params": [ { "param_name": "current_state",
+                                         "param_doc": "The current state of the monitored VM.",
+                                         "param_type": "vmstate"
+                                       }
+                                     ]
+                 }
+}
+
+{ "rpc_type": "notification",
+  "rpc_server": "xenvm_monitor",
+  "rpc_doc": "",
+  "rpc_version": "0.1",
+
+  "rpc_request": { "request_name": "VM.Error",
+                   "request_doc": "This is sent whenever XenVM experiences any error.",
+                   "request_handler": "vm_error_handler",
+                   "request_params": [ { "param_name": "error",
+                                         "param_doc": "",
+                                         "param_type": "error"
+                                       }
+                                     ]
+                 }
+}
