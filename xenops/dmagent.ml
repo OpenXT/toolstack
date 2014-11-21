@@ -152,36 +152,28 @@ let create_device_serial ~trans info domid dmaid dmid =
 	trans.Xst.write devpath info.Dm.serial
 
 let create_device_drive ~trans info domid dmaid dmid id disk =
-	if disk.Device.Vbd.dev_type != Device.Vbd.Disk then
-		id
-	else
-	begin
-		let devname = sprintf "disk%d" id in
-		let devpath = (device_path dmaid domid dmid devname) in
-		let character = match String.explode disk.Device.Vbd.virtpath with
-					| 'h' :: 'd' :: x :: _ -> x
-					| _ ->
-							raise (Dm.Ioemu_failed ("Unhandle disk"))
-		in
-		let file = if in_stubdom info then "/dev/xvd" ^ (Printf.sprintf "%c" character)
-									  else disk.Device.Vbd.physpath in
-		let format = "raw" in (* Handle physical cdrom device *)
-		let media = if disk.Device.Vbd.dev_type = Device.Vbd.CDROM then "cdrom"
-																   else "disk" in
-		(* Handle only IDE for the moment *)
-		let index = match String.explode disk.Device.Vbd.virtpath with
-					| 'h' :: 'd' :: ('a'..'t' as letter) :: _ ->
-							int_of_char letter - int_of_char 'a'
-					| _ ->
-							raise (Dm.Ioemu_failed ("Unhandle disk"))
-		in
-		create_device ~trans domid dmaid dmid "drive" ~devname;
-		trans.Xst.write (devpath ^ "/file") file;
-		trans.Xst.write (devpath ^ "/media") media;
-		trans.Xst.write (devpath ^ "/format") format;
-		trans.Xst.write (devpath ^ "/index") (string_of_int index);
-		id + 1
-	end
+	let devname, media, format =
+		match disk.Device.Vbd.dev_type with
+		| Device.Vbd.Disk -> (sprintf "disk%d" id, "disk", "raw")
+		| Device.Vbd.CDROM -> (sprintf "cdrom%d" id, "cdrom", "file")
+		| _ -> raise (Dm.Ioemu_failed("Unhandle disk type."))
+	in
+	let devpath = (device_path dmaid domid dmid devname) in
+	let character, index =
+		match String.explode disk.Device.Vbd.virtpath with
+		| 'h' :: 'd' :: x :: _ -> (x, int_of_char x - int_of_char 'a')
+		| _ -> raise (Dm.Ioemu_failed("Invalid disk" ^ disk.Device.Vbd.virtpath))
+	in
+	let file =
+		if in_stubdom info then sprintf "/dev/xvd%c" character else
+			disk.Device.Vbd.physpath
+	in
+	create_device ~trans domid dmaid dmid "drive" ~devname;
+	trans.Xst.write (devpath ^ "/file") file;
+	trans.Xst.write (devpath ^ "/media") media;
+	trans.Xst.write (devpath ^ "/format") format;
+	trans.Xst.write (devpath ^ "/index") (string_of_int index);
+	id + 1
 
 let create_device_cdrom ~trans domid dmaid dmid id disk =
 	if disk.Device.Vbd.dev_type != Device.Vbd.CDROM then
@@ -196,18 +188,23 @@ let create_device_cdrom ~trans domid dmaid dmid id disk =
 		id + 1
 	end
 
-let create_device_cdrom_pt ~trans info domid dmaid dmid kind =
-	let devname = "cdrom-" ^ kind in
+let create_device_cdrom_pt ~trans info domid dmaid dmid cdrompt =
+	let kind,bsg = match cdrompt with
+		| Cdrompt   x -> ("pt-exclusive",x)
+		| CdromptRO x -> ("pt-ro-exclusive",x) in
+	let bsgstr =
+		let a,b,c,d = bsg in
+			sprintf "%d_%d_%d_%d" a b c d
+	in
+	let devname = "cdrom-" ^ kind ^ "-" ^ bsgstr in
 	let devpath = (device_path dmaid domid dmid devname) ^ "/device" in
 	let optpath = (device_path dmaid domid dmid devname) ^ "/option" in
-	let equal (e, _) = (compare e devname) == 0 in
-	let (_, opt) = List.find equal info.Dm.extras in
+	let bsgdev = bsgpath bsg in
 		create_device ~trans domid dmaid dmid "cdrom" ~devname;
-		trans.Xst.write devpath (get opt);
+		trans.Xst.write devpath bsgdev;
 		trans.Xst.write optpath kind
 
-let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
-												  is_wireless, id) =
+let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model, is_wireless, id) =
 	let use_net_device_model = try ignore (Unix.stat "/config/e1000"); "e1000"
 					  with _ -> "rtl8139" in
 	let modelstr =
@@ -313,15 +310,15 @@ let create_device ~trans info domid dmaid dmid device =
 			let f = create_device_drive ~trans info domid dmaid dmid in
 			ignore (List.fold_left f 0 info.Dm.disks)
 	| "cdrom" ->
-		if in_extras "cdrom-pt-exclusive" info then
-			create_device_cdrom_pt ~trans info domid dmaid dmid "pt-exclusive";
-		if in_extras "cdrom-pt-ro-exclusive" info then
-			create_device_cdrom_pt ~trans info domid dmaid dmid "pt-ro-exclusive";
-		if in_stubdom info then
-			begin
-				let f = create_device_cdrom ~trans domid dmaid dmid in
-				ignore (List.fold_left f 0 info.Dm.disks);
-			end;
+			let create_cdrom (k,v) =
+			match v with
+			| None -> ()
+			| Some value ->
+				match parse_cdrompt_spec (k,value) with
+				| Some cdrompt -> create_device_cdrom_pt ~trans info domid dmaid dmid cdrompt
+				| _ -> ()
+			in
+			List.iter create_cdrom info.Dm.extras
 	| "net" ->
 			let f = create_device_net ~trans domid dmaid dmid in
 			List.iter f info.Dm.nics
@@ -480,8 +477,10 @@ let start ~xc ~xs ~dmpath ?(timeout = dmagent_timeout) info domid =
 		| Some uuid -> debug "using stubdomain"; Some (create_stubdomain ~xc ~xs ~timeout info domid uuid)
 	in
 	(* non-stubdom helpers *)
+	debug "fork Device Model helpers for dom%d" domid;
 	Dm.fork_dm_helpers ~xs info.Dm.vsnd domid;
 	(* List all domains *)
+	debug "List all domains";
 	let devmodels = list_devmodels ~xs info domid in
 	DevmodelMap.iter (fun (dmaid, dm)  v ->
 							debug " devmodel %d %s" dmaid dm;
