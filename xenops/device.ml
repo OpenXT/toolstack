@@ -1154,8 +1154,16 @@ let do_flr dev =
   debug "Device.Pci.do_flr %s" devstr;
   (try write_string_to_file p "1" with _ -> debug "Device.Pci.do_flr %s FAILED" devstr);
   debug "Device.Pci.do_flr %s done" devstr
-   
-let add_noexn ~xc ~xs ~hvm ?(assign=true) ?(pvpci=true) ?(flr=false) pcidevs_list domid devid =
+
+(* set pciback configuration space policy for this device to permissive *)
+let set_permissive dev =
+  let devstr = string_of_desc dev.desc in
+  let p = "/sys/bus/pci/drivers/pciback/permissive" in
+  debug "Device.Pci.switch_permissive %s" devstr;
+  (try write_string_to_file p devstr with _ -> debug "Device.Pci.switch_permissive %s FAILED" devstr);
+  debug "Device.Pci.switch_permissive %s done" devstr
+
+let add_noexn ~xc ~xs ~hvm ?(assign=true) ?(pvpci=true) ?(flr=false) ?(permissive=false) pcidevs_list domid devid =
 	let msitranslate = (List.hd pcidevs_list).msitranslate in
 	let power_mgmt   = (List.hd pcidevs_list).power_mgmt in
 	let pcidevs = List.map (fun info ->
@@ -1180,6 +1188,9 @@ let add_noexn ~xc ~xs ~hvm ?(assign=true) ?(pvpci=true) ?(flr=false) pcidevs_lis
 	) pcidevs_list in
 
 	List.iter (fun (dev, resources) ->
+		if (permissive) then (
+			set_permissive dev
+		);
 		debug "Device.Pci.add domid=%d %d %d %d %d assign=%s pvpci=%s" domid dev.desc.domain dev.desc.bus dev.desc.slot dev.desc.func (string_of_bool assign) (string_of_bool pvpci);
 		if (hvm || pvpci) && assign then (
 			Xc.domain_assign_device xc domid (dev.desc.domain, dev.desc.bus, dev.desc.slot, dev.desc.func);
@@ -1219,8 +1230,8 @@ let add_noexn ~xc ~xs ~hvm ?(assign=true) ?(pvpci=true) ?(flr=false) pcidevs_lis
 	] in
 	Generic.add_device ~xs device (others @ List.concat xsdevs @ backendlist) frontendlist
 
-let add ~xc ~xs ~hvm ?assign ?pvpci ?flr pcidevs domid devid =
-	try add_noexn ~xc ~xs ~hvm ?assign ?pvpci ?flr pcidevs domid devid
+let add ~xc ~xs ~hvm ?assign ?pvpci ?flr ?permissive pcidevs domid devid =
+	try add_noexn ~xc ~xs ~hvm ?assign ?pvpci ?flr ?permissive pcidevs domid devid
 	with exn ->
 		raise (Cannot_add (pcidevs, exn))
 
