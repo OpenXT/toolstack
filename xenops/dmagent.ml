@@ -168,11 +168,17 @@ let create_device_drive ~trans info domid dmaid dmid id disk =
 		if in_stubdom info then sprintf "/dev/xvd%c" character else
 			disk.Device.Vbd.physpath
 	in
+        let readonlystr =
+               match disk.Device.Vbd.mode with
+               | Device.Vbd.ReadOnly -> "on"
+               | Device.Vbd.ReadWrite -> "off"
+        in
 	create_device ~trans domid dmaid dmid "drive" ~devname;
 	trans.Xst.write (devpath ^ "/file") file;
 	trans.Xst.write (devpath ^ "/media") media;
 	trans.Xst.write (devpath ^ "/format") format;
 	trans.Xst.write (devpath ^ "/index") (string_of_int index);
+        trans.Xst.write (devpath ^ "/readonly") readonlystr;
 	id + 1
 
 let create_device_cdrom ~trans domid dmaid dmid id disk =
