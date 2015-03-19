@@ -1163,6 +1163,14 @@ let set_permissive dev =
   (try write_string_to_file p devstr with _ -> debug "Device.Pci.switch_permissive %s FAILED" devstr);
   debug "Device.Pci.switch_permissive %s done" devstr
 
+(* set pciback configuration space policy for this device to restrictive *)
+let set_restrictive dev =
+  let devstr = string_of_desc dev.desc in
+  let p = "/sys/bus/pci/drivers/pciback/restrictive" in
+  debug "Device.Pci.switch_restrictive %s" devstr;
+  (try write_string_to_file p devstr with _ -> debug "Device.Pci.switch_restrictive %s FAILED" devstr);
+  debug "Device.Pci.switch_restrictive %s done" devstr
+
 let add_noexn ~xc ~xs ~hvm ?(assign=true) ?(pvpci=true) ?(flr=false) ?(permissive=false) pcidevs_list domid devid =
 	let msitranslate = (List.hd pcidevs_list).msitranslate in
 	let power_mgmt   = (List.hd pcidevs_list).power_mgmt in
@@ -1262,7 +1270,9 @@ let release ~xc ~xs ~hvm pcidevs domid devid =
 			report_errors (fun _ -> Xc.domain_irq_permission xc domid resources.irq false)
 		);
 		debug "remove resource access grants";
-		report_errors (fun _ -> grant_access_resources xc domid resources.memaddr false)
+		report_errors (fun _ -> grant_access_resources xc domid resources.memaddr false);
+		(* Restore restrictive permission by default ... *)
+		if (hvm = false) then set_restrictive dev
 	in
 
 	List.iter (fun (dev, resources) ->
