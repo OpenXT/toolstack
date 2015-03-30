@@ -284,8 +284,9 @@ let create_dm_stubdom ~xc ~xs dmargs info target_domid uuid =
 	) info.vifs;
 	(* adding pcis *)
 	List.iter (fun (devid, devs) ->
-		(* stubdom PCIs are not actually assigned *)
-		Device.PCI.add ~xc ~xs ~hvm:false ~assign:false ~pvpci:true devs stubdom_domid devid
+		(* stubdom PCIs are not actually assigned.
+		 * Grant PCI devices config-space write-access to the stub-domain *)
+		Device.PCI.add ~xc ~xs ~hvm:false ~assign:false ~pvpci:true ~permissive:true devs stubdom_domid devid
 	) info.pcis;
 
 	Device.Vfb.add ~xc ~xs ~hvm:false stubdom_domid;

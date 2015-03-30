@@ -96,6 +96,9 @@ let is_some s =
 	| Some _ -> true
 	| _ -> false
 
+let in_stubdom info =
+	info.Dm.hvm && is_some info.Dm.stubdom
+
 (* Kill domain domid in dmagent dmaid *)
 let kill_domain ~xs domid dmaid =
 	let dompath = domain_path dmaid domid in
@@ -148,6 +151,36 @@ let create_device_serial ~trans info domid dmaid dmid =
 	let devpath = (device_path dmaid domid dmid "serial") ^ "/device" in
 	trans.Xst.write devpath info.Dm.serial
 
+let create_device_drive ~trans info domid dmaid dmid id disk =
+	let devname, media, format =
+		match disk.Device.Vbd.dev_type with
+		| Device.Vbd.Disk -> (sprintf "disk%d" id, "disk", "raw")
+		| Device.Vbd.CDROM -> (sprintf "cdrom%d" id, "cdrom", "file")
+		| _ -> raise (Dm.Ioemu_failed("Unhandle disk type."))
+	in
+	let devpath = (device_path dmaid domid dmid devname) in
+	let character, index =
+		match String.explode disk.Device.Vbd.virtpath with
+		| 'h' :: 'd' :: x :: _ -> (x, int_of_char x - int_of_char 'a')
+		| _ -> raise (Dm.Ioemu_failed("Invalid disk" ^ disk.Device.Vbd.virtpath))
+	in
+	let file =
+		if in_stubdom info then sprintf "/dev/xvd%c" character else
+			disk.Device.Vbd.physpath
+	in
+        let readonlystr =
+               match disk.Device.Vbd.mode with
+               | Device.Vbd.ReadOnly -> "on"
+               | Device.Vbd.ReadWrite -> "off"
+        in
+	create_device ~trans domid dmaid dmid "drive" ~devname;
+	trans.Xst.write (devpath ^ "/file") file;
+	trans.Xst.write (devpath ^ "/media") media;
+	trans.Xst.write (devpath ^ "/format") format;
+	trans.Xst.write (devpath ^ "/index") (string_of_int index);
+        trans.Xst.write (devpath ^ "/readonly") readonlystr;
+	id + 1
+
 let create_device_cdrom ~trans domid dmaid dmid id disk =
 	if disk.Device.Vbd.dev_type != Device.Vbd.CDROM then
 		id
@@ -167,21 +200,22 @@ let create_device_cdrom_pt ~trans info domid dmaid dmid cdrompt =
 		| CdromptRO x -> ("pt-ro-exclusive",x) in
 	let bsgstr =
 		let a,b,c,d = bsg in
-		sprintf "%d_%d_%d_%d" a b c d
+			sprintf "%d_%d_%d_%d" a b c d
 	in
 	let devname = "cdrom-" ^ kind ^ "-" ^ bsgstr in
 	let devpath = (device_path dmaid domid dmid devname) ^ "/device" in
 	let optpath = (device_path dmaid domid dmid devname) ^ "/option" in
 	let bsgdev = bsgpath bsg in
-	create_device ~trans domid dmaid dmid "cdrom" ~devname;
-	trans.Xst.write devpath bsgdev;
-	trans.Xst.write optpath kind
+		create_device ~trans domid dmaid dmid "cdrom" ~devname;
+		trans.Xst.write devpath bsgdev;
+		trans.Xst.write optpath kind
 
-let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
-												  is_wireless, id) =
+let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model, is_wireless, id) =
+	let use_net_device_model = try ignore (Unix.stat "/config/e1000"); "e1000"
+					  with _ -> "rtl8139" in
 	let modelstr =
 		match model with
-		| None -> "rtl8139"
+		| None -> use_net_device_model
 		| Some m -> m
 	in
 	let devname = sprintf "net%d" id in
@@ -198,6 +232,33 @@ let create_device_net ~trans domid dmaid dmid (mac, (_, bridge), model,
 	trans.Xst.write idpath (sprintf "%u" id);
 	trans.Xst.write namepath (sprintf "%s%u" (if is_wireless then "vwif" else
 						  	  "vif") id)
+let in_extras v info =
+	List.exists (fun (e, _) -> (compare e v) == 0) info.Dm.extras
+
+(* Create a device for each PCI which would like to passthrough for the guest
+ *
+ * -1- compute the data information directly in the format needed for QEMU
+ *     TODO: should we have to change the format and write each information
+ *     separatly in XenStore and ensure that dm-agent will deal correctly with
+ *     that ?
+ *     I mean: it is not the work of XenClient toolstack to launch the qemu,
+ *     then it's not the work of XenClient toolstack to format this option for
+ *     QEMU *)
+let create_devices_xen_pci_passthrough ~trans domid dmaid dmid (pci_id, pci_list) =
+	let create_device_xen_pci_passthrough id pci_dev =
+		let pci_get_bdf_string desc = (* -1- *)
+			sprintf "%04x:%02x:%02x.%02x"
+			desc.Device.PCI.domain desc.Device.PCI.bus desc.Device.PCI.slot desc.Device.PCI.func
+		in
+		let pci_bdf = pci_get_bdf_string pci_dev.Device.PCI.desc in
+		let devname = sprintf "xen_pci_pt-%d" id in
+		let devpath = device_path dmaid domid dmid devname in
+		let hostaddrpath = devpath ^ "/hostaddr" in
+		create_device ~trans domid dmaid dmid "xen_pci_pt" ~devname;
+		trans.Xst.write hostaddrpath pci_bdf;
+		id + 1
+	in
+	ignore (List.fold_left create_device_xen_pci_passthrough 0 pci_list)
 
 (* List of all possible device *)
 let device_list =
@@ -212,13 +273,20 @@ let device_list =
 		"serial";
 		"input";
 		"cdrom";
-		"net"
+		"drive";
+		"net";
+		"xen_pci_pt";
+		"xenmou";
+		"xenbattery"
 	]
 
 (* Indicate if we need the device *)
 let need_device info device =
 	match device with
 	| "xenfb" | "input" -> not info.Dm.hvm
+	| "xenmou" -> info.Dm.hvm
+	| "xenbattery" -> info.Dm.hvm
+	| "xen_pci_pt" -> info.Dm.hvm
 	| "svga" -> info.Dm.hvm && in_extras "std-vga" info
 	| "xengfx" -> info.Dm.hvm && in_extras "xengfx" info
 	| "vgpu" -> info.Dm.hvm && in_extras "vgpu" info
@@ -227,6 +295,9 @@ let need_device info device =
 	| "audio" -> info.Dm.hvm && is_some info.Dm.sound
 	| "serial" -> info.Dm.hvm && info.Dm.serial <> ""
 	| "net" -> info.Dm.hvm && info.Dm.nics <> []
+	| "drive" -> info.Dm.hvm && List.fold_left (fun b disk -> b ||
+								disk.Device.Vbd.dev_type = Device.Vbd.Disk)
+								false info.Dm.disks
 	| "cdrom" -> (in_stubdom info && List.fold_left (fun b disk -> b ||
 					disk.Device.Vbd.dev_type = Device.Vbd.CDROM) false
 					info.Dm.disks)
@@ -241,19 +312,25 @@ let create_device ~trans info domid dmaid dmid device =
 			create_device_sound ~trans info domid dmaid dmid
 	| "serial" ->
 			create_device_serial ~trans info domid dmaid dmid
+	| "drive" ->
+			let f = create_device_drive ~trans info domid dmaid dmid in
+			ignore (List.fold_left f 0 info.Dm.disks)
 	| "cdrom" ->
-		let create_cdrom (k,v) =
+			let create_cdrom (k,v) =
 			match v with
 			| None -> ()
 			| Some value ->
 				match parse_cdrompt_spec (k,value) with
 				| Some cdrompt -> create_device_cdrom_pt ~trans info domid dmaid dmid cdrompt
 				| _ -> ()
-		in
-		List.iter create_cdrom info.Dm.extras
+			in
+			List.iter create_cdrom info.Dm.extras
 	| "net" ->
 			let f = create_device_net ~trans domid dmaid dmid in
 			List.iter f info.Dm.nics
+	| "xen_pci_pt" ->
+			let f = create_devices_xen_pci_passthrough ~trans domid dmaid dmid in
+			List.iter f info.Dm.pcis
 	| _ -> (* By default create the device without option *)
 			create_device ~trans domid dmaid dmid device
 
@@ -279,7 +356,9 @@ let create_devmodel ~xs ~timeout info domid dmaid dmid dminfo =
 
 (* Create a stubdomain with dm-agent inside *)
 let create_stubdomain ~xc ~xs ~timeout info target_domid uuid =
-	let args = ["dmagent"; sprintf "%u" target_domid] in
+	let use_qemu_dm = try ignore (Unix.stat "/config/qemu-dm"); [ "qemu-dm" ]
+					  with _ -> [] in
+	let args = ["dmagent"; sprintf "%u" target_domid] @ use_qemu_dm in
 	let stubdom_domid = Dm.create_dm_stubdom ~xc ~xs args info target_domid uuid in
 	(* Wait that dm-agent has been created *)
 	let waitpath = dmagent_path (string_of_int stubdom_domid) "capabilities" in
@@ -404,8 +483,10 @@ let start ~xc ~xs ~dmpath ?(timeout = dmagent_timeout) info domid =
 		| Some uuid -> debug "using stubdomain"; Some (create_stubdomain ~xc ~xs ~timeout info domid uuid)
 	in
 	(* non-stubdom helpers *)
+	debug "fork Device Model helpers for dom%d" domid;
 	Dm.fork_dm_helpers ~xs info.Dm.vsnd domid;
 	(* List all domains *)
+	debug "List all domains";
 	let devmodels = list_devmodels ~xs info domid in
 	DevmodelMap.iter (fun (dmaid, dm)  v ->
 							debug " devmodel %d %s" dmaid dm;

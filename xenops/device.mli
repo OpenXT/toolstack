@@ -195,6 +195,7 @@ sig
 		-> ?assign:bool
 		-> ?pvpci:bool
 		-> ?flr:bool
+		-> ?permissive:bool
 		-> dev list -> Xc.domid -> int -> unit
 	val release : xc:Xc.handle -> xs:Xs.xsh -> hvm:bool
 	       -> dev list -> Xc.domid -> int -> unit
