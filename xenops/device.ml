@@ -1150,9 +1150,9 @@ let read_dev_class dev =
 
 let do_flr dev =
   let devstr = string_of_desc dev.desc in
-  let p = "/sys/bus/pci/drivers/pciback/" ^ devstr ^ "/reset" in
-  debug "Device.Pci.do_flr %s" devstr;
-  (try write_string_to_file p "1" with _ -> debug "Device.Pci.do_flr %s FAILED" devstr);
+  let p = "/sys/bus/pci/drivers/pciback/reset_device" in
+  debug "Device.Pci.do_flr %s via reset_device" devstr;
+  (try write_string_to_file p devstr with _ -> debug "Device.Pci.do_flr %s FAILED" devstr);
   debug "Device.Pci.do_flr %s done" devstr
 
 (* set pciback configuration space policy for this device to permissive *)
