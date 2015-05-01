@@ -285,7 +285,7 @@ let need_device info device =
 	match device with
 	| "xenfb" | "input" -> not info.Dm.hvm
 	| "xenmou" -> info.Dm.hvm
-	| "xenbattery" -> info.Dm.hvm
+	| "xenbattery" -> info.Dm.hvm && in_extras "xenbattery" info
 	| "xen_pci_pt" -> info.Dm.hvm
 	| "svga" -> info.Dm.hvm && in_extras "std-vga" info
 	| "xengfx" -> info.Dm.hvm && in_extras "xengfx" info
