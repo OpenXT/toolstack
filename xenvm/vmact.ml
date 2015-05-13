@@ -681,6 +681,45 @@ let add_devices xc xs domid state restore =
 			List.iter (add_pci_to_vm ~xs state) pcis
 	        ) pcis;
 
+
+		if cfg.hvm then (
+			debug "add_devices: process PCI hole size";
+			let mmio_size dev =
+				let rec __mmio_size res = match res with
+				| [] -> 0L
+				| (base, limit, _)::l -> debug "%Lx - %Lx = %Lx " limit base (Int64.sub limit base); Int64.add (Int64.sub limit base) (__mmio_size l)
+				in __mmio_size (Device.PCI.mmio dev)
+			in
+			let mmio_size_total cfg_pcis =
+				let rec __mmio_size_total pcidevs = match pcidevs with
+				| [] -> 0L
+				| dev::l -> Int64.add (mmio_size dev) (__mmio_size_total l) in
+				List.fold_left (fun acc (devid, cfg_devs) ->
+					let pcidevs = List.map (fun dev ->
+						xenops_pci_of_pci cfg dev
+				) cfg_devs in
+					Int64.add acc (__mmio_size_total pcidevs)
+					) 32L cfg_pcis
+				(* We assume 32MB are required for QEMU default configuration. *)
+					in
+			let pci_hole_size = mmio_size_total pcis in
+			let rec pci_hole_base_adjust base size =
+				(* HVMLOADER assumes the PCI hole cannot grow below the 2G limit. *)
+				if (base <= 0x80000000L) then 0x80000000L
+				(* Another hardcoded limit in HVMLOADER is 0xfc000000 for the PCI hole top limit.
+				 * Above that are Xen shared pages, MSI regions...*)
+				else if (Int64.sub 0xfc000000L base < size) then
+					pci_hole_base_adjust (Int64.logand (Int64.shift_left base 1) 0xffffffffL) size
+				else
+					base
+			in
+			(* Write the Top of Low Usable Memory in XenStore for dm-agent. *)
+			let path = sprintf "/local/domain/%d/memory/tolum" domid in
+				debug "Required PCI hole size: 0x%LxB, base adjusted to %Lx"
+					pci_hole_size (pci_hole_base_adjust 0xf0000000L pci_hole_size);
+				xs.Xs.write path (Int64.to_string (pci_hole_base_adjust 0xf0000000L pci_hole_size))
+		);
+
 		debug "add_devices: adding IOs passthrough";
 		List.iter (fun x ->
 			Device.PCI.passthrough_io ~xc domid x true;
