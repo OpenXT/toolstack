@@ -687,7 +687,8 @@ let add_devices xc xs domid state restore =
 			let mmio_size dev =
 				let rec __mmio_size res = match res with
 				| [] -> 0L
-				| (base, limit, _)::l -> debug "%Lx - %Lx = %Lx " limit base (Int64.sub limit base); Int64.add (Int64.sub limit base) (__mmio_size l)
+				| (base, limit, _)::l ->
+                                        Int64.add (Int64.sub (Int64.add limit 1L) base) (__mmio_size l)
 				in __mmio_size (Device.PCI.mmio dev)
 			in
 			let mmio_size_total cfg_pcis =
@@ -697,11 +698,11 @@ let add_devices xc xs domid state restore =
 				List.fold_left (fun acc (devid, cfg_devs) ->
 					let pcidevs = List.map (fun dev ->
 						xenops_pci_of_pci cfg dev
-				) cfg_devs in
-					Int64.add acc (__mmio_size_total pcidevs)
-					) 32L cfg_pcis
-				(* We assume 32MB are required for QEMU default configuration. *)
-					in
+				        ) cfg_devs in
+                                        Int64.add acc (__mmio_size_total pcidevs)
+				) 0x2000000L cfg_pcis
+				(* We assume 32MB (0x2000000B) are required for QEMU default configuration. *)
+			in
 			let pci_hole_size = mmio_size_total pcis in
 			let rec pci_hole_base_adjust base size =
 				(* HVMLOADER assumes the PCI hole cannot grow below the 2G limit. *)
