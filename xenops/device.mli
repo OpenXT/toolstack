@@ -202,6 +202,9 @@ sig
 	val bind : dev list -> unit
 	val plug : xc:Xc.handle -> xs:Xs.xsh -> dev -> Xc.domid -> int -> unit
 	val unplug : xc:Xc.handle -> xs:Xs.xsh -> dev -> Xc.domid -> int -> unit
+
+        val mmio : dev -> (int64 * int64 * int64) list
+        val io : dev -> (int64 * int64 * int64) list
 end
 
 module Vfb :

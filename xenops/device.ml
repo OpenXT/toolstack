@@ -1171,6 +1171,18 @@ let set_restrictive dev =
   (try write_string_to_file p devstr with _ -> debug "Device.Pci.switch_restrictive %s FAILED" devstr);
   debug "Device.Pci.switch_restrictive %s done" devstr
 
+let mmio pcidev =
+    let (irq, resources, driver) = get_from_system pcidev.desc in
+    List.filter (fun (base, limit, flags) ->
+        (Int64.logand flags 0x1L) = 0x0L
+    ) resources
+
+let io pcidev =
+    let (irq, resources, driver) = get_from_system pcidev.desc in
+    List.filter (fun (base, limit, flags) ->
+        (Int64.logand flags 0x1L) = 0x1L
+    ) resources
+
 let add_noexn ~xc ~xs ~hvm ?(assign=true) ?(pvpci=true) ?(flr=false) ?(permissive=false) pcidevs_list domid devid =
 	let msitranslate = (List.hd pcidevs_list).msitranslate in
 	let power_mgmt   = (List.hd pcidevs_list).power_mgmt in
