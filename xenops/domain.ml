@@ -58,6 +58,9 @@ let hard_shutdown ~xc domid req =
 (** Return the path in xenstore watched by the PV shutdown driver *)
 let control_shutdown ~xs domid = xs.Xs.getdomainpath domid ^ "/control/shutdown"
 
+let hvm_shutdown ~xs domid = xs.Xs.getdomainpath domid ^ "/control/hvm-shutdown"
+
+let gpe_enabled ~xs domid = xs.Xs.getdomainpath domid ^ "/control/hvm-powerbutton-enable"
 (** Request a shutdown, return without waiting for acknowledgement *)
 let shutdown ~xc ~xs ~hvm domid req =
 	debug "Requesting shutdown of domain %d" domid;
@@ -66,11 +69,21 @@ let shutdown ~xc ~xs ~hvm domid req =
 	if hvm then (
 		let has_pv_driver = Xc.hvm_check_pvdriver xc domid in
 		let acpi_s_state = Xc.domain_get_acpi_s_state xc domid in
-		(* If HVM domain has no PV drivers or is sleeping (according to acpi suspend state),
-		   we shut it down here using the shutdown hypercall. otherwise it shuts itself down
-		   but if doesn't remove the control/shutdown node *)
-		if not has_pv_driver || acpi_s_state <> 0 then
-			Xc.domain_shutdown xc domid (shutdown_to_xc_shutdown req);
+		let is_gpe_enabled = 
+			try
+				xs.Xs.read (gpe_enabled ~xs domid)
+			with Xb.Noent ->
+				"0"
+		in
+		(* If HVM domain is sleeping (according to acpi suspend state),
+		   we shut it down here using the shutdown hypercall. otherwise we shut it down
+		   with ACPI SCI from qemu to the guest. *)
+		if (not has_pv_driver && acpi_s_state <> 0) || (is_gpe_enabled <> "1") then
+			Xc.domain_shutdown xc domid (shutdown_to_xc_shutdown req)
+		else if (not has_pv_driver) && (is_gpe_enabled = "1") then
+			xs.Xs.write (hvm_shutdown ~xs domid) reason
+		else
+			debug "Handling shutdown of domain %d through PV driver." domid;
 	)
 
 (** PV domains will acknowledge the request by deleting the node from the
