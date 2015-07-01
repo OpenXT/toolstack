@@ -919,6 +919,7 @@ let shutdown_vm xc xs xal state force reason =
 			| Xal.Vanished, _ -> true
 			| Xal.Halted, (Domain.Halt | Domain.PowerOff) -> true
 			| Xal.Rebooted, Domain.Reboot       -> true
+			| Xal.Halted, Domain.Reboot         -> true
 			| Xal.Suspended, Domain.Suspend     -> true
 			| Xal.Shutdown i, Domain.Unknown i2 -> i = i2
 			| _ -> false
