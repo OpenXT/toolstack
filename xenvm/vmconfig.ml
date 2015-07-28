@@ -815,7 +815,7 @@ let empty =
 		stubdom_memory = 64L;
 		stubdom_initrd = Some "/usr/lib/xen/boot/stubdomain-initramfs";
 		stubdom_kernel = "/usr/lib/xen/boot/stubdomain-bzImage";
-		stubdom_cmdline = "init=/init xen_blkfront.max=8";
+		stubdom_cmdline = "";
 		qemu_dm_path = "";
 		qemu_dm_timeout = 30;
 		bios_strings = [];
@@ -861,7 +861,7 @@ let of_file uuid error_report file =
 		("debug", Config.Set_bool debug);
 		("memory", Config.Set_int memory);
 		("stubdom-memory", Config.Set_int stubdom_memory);
-                ("stubdom-cmdline", Config.String (fun s -> stubdom_cmdline := String.concat " " [!stubdom_cmdline; s]));
+                ("stubdom-cmdline", Config.String (fun s -> stubdom_cmdline := s));
 		("no_mem_check", Config.Set_bool no_mem_check);
 	] in
 	let kv k v =
