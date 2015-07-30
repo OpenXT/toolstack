@@ -153,7 +153,7 @@ let do_flr_on_collection ~xs all_pci_devices =
 
 	) all_pci_devices
   
-let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
+let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid ?(do_flr=true) =
 	let dom_path = xs.Xs.getdomainpath domid in
 
 	let all_devices = list_devices_for ~xs domid in
@@ -190,7 +190,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 						let reason = Xal.wait_release xal ~timeout:60. stubdomid in
 						info "stubdom has died, reason: %s" (Xal.string_of_died_reason reason);
 						(* shoot later *)
-						destroy_nowait ~xc ~xs stubdomid
+						destroy_nowait ~xc ~xs stubdomid ~do_flr:false
 					)
 				with _ ->
 					info "stubdom didn't shutdown after 1min";
@@ -198,7 +198,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 			) else (
 				debug "stubdom didn't ACK shutdown request";
 				(* shoot later *)
-				destroy_nowait ~xc ~xs stubdomid
+				destroy_nowait ~xc ~xs stubdomid ~do_flr:false
 			)
 		) ();
 
@@ -212,7 +212,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 	) all_nonpci_devices;
 
 	(* and perform a reset on every PCI backend *)
-	do_flr_on_collection ~xs all_pci_devices;
+	if do_flr then do_flr_on_collection ~xs all_pci_devices;
 
 	(* For each device which has a hotplug entry, perform the cleanup. Even if one
 	   fails, try to cleanup the rest anyway.*)
@@ -253,10 +253,11 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 	(* If all devices were properly un-hotplugged, then zap the tree in xenstore.
 	   If there was some error leave the tree for debugging / async cleanup. *)
 	if failed_devices = []
-  then log_exn_rm ~xs (Hotplug.get_private_path domid)
+	then log_exn_rm ~xs (Hotplug.get_private_path domid)
+
 
 let destroy ?(preserve_xs_vm=false) ~xc ~xs domid =
-	destroy_nowait ~preserve_xs_vm ~xc ~xs domid;
+	destroy_nowait ~preserve_xs_vm ~xc ~xs domid ~do_flr:true;
 	(* Block waiting for the dying domain to disappear: aim is to catch shutdown errors early*)
 	let still_exists () = 
 		try
