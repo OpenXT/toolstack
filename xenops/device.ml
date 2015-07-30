@@ -1289,17 +1289,8 @@ let release ~xc ~xs ~hvm pcidevs domid devid =
 
 	List.iter (fun (dev, resources) ->
 		free domid dev resources hvm
-	) pcidevs;
+	) pcidevs
 
-	let device = {
-		backend = { domid = 0; kind = Pci; devid = devid };
-		frontend = { domid = domid; kind = Pci; devid = devid };
-	} in
-	let backend_path = backend_path_of_device ~xs device in
-	let flr = try (xs.Xs.read (backend_path ^ "/flr")) with _ -> "0" in
-	if flr = "1" then (
-		List.iter (fun (dev, resources) -> do_flr dev) pcidevs;
-	)
 
 let bind pcidevs =
 	let bind_to_pciback device =

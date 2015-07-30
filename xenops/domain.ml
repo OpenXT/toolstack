@@ -137,7 +137,22 @@ let hard_shutdown_all_vbds ~xc ~xs ?(extra_debug_paths = []) (devices: device li
 	with Watch.Timeout _ ->
 		debug "Timeout waiting for backends to flush";
 		raise Timeout_backend
-	
+
+
+(* Run an FLR on all passed-in devices *)
+let do_flr_on_collection ~xs all_pci_devices =
+	(* For each PCI device in the given collection... *)
+	List.iter (fun device ->
+		debug "Requesting FLR on %s via do_flr_on_collection." (string_of_device device);
+
+		(* Find all PCI device objects matching the given device model. *)
+		let devs = Device.PCI.enumerate_devs ~xs device in
+
+		(* And perform an FLR on each of those devices. *)
+		List.iter (fun dev -> Device.PCI.do_flr dev) devs
+
+	) all_pci_devices
+  
 let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 	let dom_path = xs.Xs.getdomainpath domid in
 
@@ -148,16 +163,16 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 	let all_pci_devices = List.filter (fun device -> device.backend.kind = Pci) all_devices in
 	let all_nonpci_devices = List.filter (fun device -> device.backend.kind <> Pci) all_devices in
 
-	(* Now we should kill the domain itself *)
-	debug "Domain.destroy calling Xc.domain_destroy (domid %d)" domid;
-	log_exn_continue "Xc.domain_destroy" (Xc.domain_destroy xc) domid;
-
 	(* forcibly shutdown every pci backend. doing it before shutting ioemu ensures that device is back in dom0
          * when surfman gets notified about domain death *)
 	List.iter (fun device ->
 		try Device.hard_shutdown ~xs device
 		with exn -> debug "Caught exception %s while destroying device %s" (Printexc.to_string exn) (string_of_device device);
 	) all_pci_devices;
+
+	(* Now we should kill the domain itself *)
+	debug "Domain.destroy calling Xc.domain_destroy (domid %d)" domid;
+	log_exn_continue "Xc.domain_destroy" (Xc.domain_destroy xc) domid;
 
 	log_exn_continue "Error signaling dm-agents that domain will be destroyed"
 	                 (fun () -> Dmagent.stop ~xs domid) ();
@@ -196,6 +211,8 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 		with exn -> debug "Caught exception %s while destroying device %s" (Printexc.to_string exn) (string_of_device device);
 	) all_nonpci_devices;
 
+	(* and perform a reset on every PCI backend *)
+	do_flr_on_collection ~xs all_pci_devices;
 
 	(* For each device which has a hotplug entry, perform the cleanup. Even if one
 	   fails, try to cleanup the rest anyway.*)
@@ -236,8 +253,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 	(* If all devices were properly un-hotplugged, then zap the tree in xenstore.
 	   If there was some error leave the tree for debugging / async cleanup. *)
 	if failed_devices = []
-	then log_exn_rm ~xs (Hotplug.get_private_path domid)
-
+  then log_exn_rm ~xs (Hotplug.get_private_path domid)
 
 let destroy ?(preserve_xs_vm=false) ~xc ~xs domid =
 	destroy_nowait ~preserve_xs_vm ~xc ~xs domid;
