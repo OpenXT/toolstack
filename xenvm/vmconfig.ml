@@ -815,7 +815,7 @@ let empty =
 		stubdom_memory = 64L;
 		stubdom_initrd = Some "/usr/lib/xen/boot/stubdomain-initramfs";
 		stubdom_kernel = "/usr/lib/xen/boot/stubdomain-bzImage";
-		stubdom_cmdline = "";
+		stubdom_cmdline = "init=/init xen_blkfront.max=8";
 		qemu_dm_path = "";
 		qemu_dm_timeout = 30;
 		bios_strings = [];
