@@ -137,8 +137,23 @@ let hard_shutdown_all_vbds ~xc ~xs ?(extra_debug_paths = []) (devices: device li
 	with Watch.Timeout _ ->
 		debug "Timeout waiting for backends to flush";
 		raise Timeout_backend
-	
-let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
+
+
+(* Run an FLR on all passed-in devices *)
+let do_flr_on_collection ~xs all_pci_devices =
+	(* For each PCI device in the given collection... *)
+	List.iter (fun device ->
+		debug "Requesting FLR on %s via do_flr_on_collection." (string_of_device device);
+
+		(* Find all PCI device objects matching the given device model. *)
+		let devs = Device.PCI.enumerate_devs ~xs device in
+
+		(* And perform an FLR on each of those devices. *)
+		List.iter (fun dev -> Device.PCI.do_flr dev) devs
+
+	) all_pci_devices
+  
+let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid ?(do_flr=true) =
 	let dom_path = xs.Xs.getdomainpath domid in
 
 	let all_devices = list_devices_for ~xs domid in
@@ -148,16 +163,16 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 	let all_pci_devices = List.filter (fun device -> device.backend.kind = Pci) all_devices in
 	let all_nonpci_devices = List.filter (fun device -> device.backend.kind <> Pci) all_devices in
 
-	(* Now we should kill the domain itself *)
-	debug "Domain.destroy calling Xc.domain_destroy (domid %d)" domid;
-	log_exn_continue "Xc.domain_destroy" (Xc.domain_destroy xc) domid;
-
 	(* forcibly shutdown every pci backend. doing it before shutting ioemu ensures that device is back in dom0
          * when surfman gets notified about domain death *)
 	List.iter (fun device ->
 		try Device.hard_shutdown ~xs device
 		with exn -> debug "Caught exception %s while destroying device %s" (Printexc.to_string exn) (string_of_device device);
 	) all_pci_devices;
+
+	(* Now we should kill the domain itself *)
+	debug "Domain.destroy calling Xc.domain_destroy (domid %d)" domid;
+	log_exn_continue "Xc.domain_destroy" (Xc.domain_destroy xc) domid;
 
 	log_exn_continue "Error signaling dm-agents that domain will be destroyed"
 	                 (fun () -> Dmagent.stop ~xs domid) ();
@@ -175,7 +190,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 						let reason = Xal.wait_release xal ~timeout:60. stubdomid in
 						info "stubdom has died, reason: %s" (Xal.string_of_died_reason reason);
 						(* shoot later *)
-						destroy_nowait ~xc ~xs stubdomid
+						destroy_nowait ~xc ~xs stubdomid ~do_flr:false
 					)
 				with _ ->
 					info "stubdom didn't shutdown after 1min";
@@ -183,7 +198,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 			) else (
 				debug "stubdom didn't ACK shutdown request";
 				(* shoot later *)
-				destroy_nowait ~xc ~xs stubdomid
+				destroy_nowait ~xc ~xs stubdomid ~do_flr:false
 			)
 		) ();
 
@@ -196,6 +211,8 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 		with exn -> debug "Caught exception %s while destroying device %s" (Printexc.to_string exn) (string_of_device device);
 	) all_nonpci_devices;
 
+	(* and perform a reset on every PCI backend *)
+	if do_flr then do_flr_on_collection ~xs all_pci_devices;
 
 	(* For each device which has a hotplug entry, perform the cleanup. Even if one
 	   fails, try to cleanup the rest anyway.*)
@@ -240,7 +257,7 @@ let rec destroy_nowait ?(preserve_xs_vm=false) ~xc ~xs domid =
 
 
 let destroy ?(preserve_xs_vm=false) ~xc ~xs domid =
-	destroy_nowait ~preserve_xs_vm ~xc ~xs domid;
+	destroy_nowait ~preserve_xs_vm ~xc ~xs domid ~do_flr:true;
 	(* Block waiting for the dying domain to disappear: aim is to catch shutdown errors early*)
 	let still_exists () = 
 		try
