@@ -834,7 +834,8 @@ let of_file uuid error_report file =
 	and output = ref (!cfg.output)
 	and no_mem_check = ref (!cfg.no_mem_check)
 	and memory = ref (-1)
-	and stubdom_memory = ref (Int64.to_int empty.stubdom_memory)
+	and stubdom_memory = ref (Int64.to_int !cfg.stubdom_memory)
+        and stubdom_cmdline = ref (!cfg.stubdom_cmdline)
 		in
 
 	let action_of_string s =
@@ -860,6 +861,7 @@ let of_file uuid error_report file =
 		("debug", Config.Set_bool debug);
 		("memory", Config.Set_int memory);
 		("stubdom-memory", Config.Set_int stubdom_memory);
+                ("stubdom-cmdline", Config.String (fun s -> stubdom_cmdline := s));
 		("no_mem_check", Config.Set_bool no_mem_check);
 	] in
 	let kv k v =
@@ -889,6 +891,7 @@ let of_file uuid error_report file =
 		memory = Int64.mul (Int64.of_int !memory) 1024L;
 		memory_max = (match !cfg.memory_max with None -> None | Some x -> Some (Int64.mul x 1024L));
 		stubdom_memory = Int64.mul (Int64.of_int !stubdom_memory) 1024L;
+                stubdom_cmdline = !stubdom_cmdline;
 		startup = !startup;
 		output = !output;
 		nics = nics;

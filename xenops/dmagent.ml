@@ -358,7 +358,7 @@ let create_devmodel ~xs ~timeout info domid dmaid dmid dminfo =
 let create_stubdomain ~xc ~xs ~timeout info target_domid uuid =
 	let use_qemu_dm = try ignore (Unix.stat "/config/qemu-dm"); [ "qemu-dm" ]
 					  with _ -> [] in
-	let args = ["dmagent"; sprintf "%u" target_domid] @ use_qemu_dm in
+	let args = ["guest_agent=dmagent"; sprintf "guest_domid=%u" target_domid] @ use_qemu_dm in
 	let stubdom_domid = Dm.create_dm_stubdom ~xc ~xs args info target_domid uuid in
 	(* Wait that dm-agent has been created *)
 	let waitpath = dmagent_path (string_of_int stubdom_domid) "capabilities" in
