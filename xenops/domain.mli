@@ -180,7 +180,7 @@ val suspend: xc: Xc.handle -> xs: Xs.xsh -> hvm: bool -> domid
 val make_stubdom: xc: Xc.handle -> xs: Xs.xsh -> ioemuargs:string list -> stubdom_info -> [`domain] Uuid.t -> domid
 
 (** send a s3resume event to a domain *)
-val send_s3resume: xc: Xc.handle -> domid -> unit
+val send_s3resume: xc: Xc.handle -> xs: Xs.xsh -> domid -> unit
 
 (** Set cpu affinity of some vcpus of a domain using an boolean array *)
 val vcpu_affinity_set: xc: Xc.handle -> domid -> int -> bool array -> unit

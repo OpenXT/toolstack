@@ -550,7 +550,10 @@ let pause ~xc domid =
 let unpause ~xc domid =
 	Xc.domain_unpause xc domid
 
-let send_s3resume ~xc domid = Xc.domain_send_s3resume xc domid
+(* wake a provided domain up from s3 *)
+let send_s3resume ~xc ~xs domid =
+	Xc.domain_send_s3resume xc domid;
+	xs.Xs.write (xs.Xs.getdomainpath domid ^ "/wakeup-req") "1"
 
 let make_stubdom ~xc ~xs ~ioemuargs info uuid =
       let ssidref =

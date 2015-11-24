@@ -823,7 +823,7 @@ let set_cores_per_socket xc domid cfg =
 		  with exn -> warn "exception ignored during cores-per-socket setting: %s" (Printexc.to_string exn)
 		  
 		  
-let do_trigger xc state args =
+let do_trigger xc xs state args =
 	match args with
 	| "s3resume" :: _ ->
 		if state.vm_lifestate <> VmRunning then
@@ -831,7 +831,7 @@ let do_trigger xc state args =
 		else if not state.vm_cfg.hvm then
 			Xenvmlib.Error ("cannot do s3resume on a non-hvm guest")
 		else (
-			Domain.send_s3resume ~xc state.vm_domid;
+			Domain.send_s3resume ~xc ~xs state.vm_domid;
 			Xenvmlib.Ok
 		)
 	| _ ->

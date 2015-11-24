@@ -563,7 +563,7 @@ let do_task state (task, args) =
 		Vmact.set state field value
 	| Tasks.Trigger ->
 		let params = Tasks.args_get_liststring args "params" in
-		with_xc (fun xc -> Vmact.do_trigger xc state params)
+		with_xcs (fun xc xs -> Vmact.do_trigger xc xs state params)
 	| Tasks.SetNicBackendDom ->
 		let id = Int64.to_int (Tasks.args_get_int args "id") in
 		let domid = Int64.to_int (Tasks.args_get_int args "domid") in
