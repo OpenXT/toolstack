@@ -1508,35 +1508,6 @@ let add ~xc ~xs ~hvm ~instance domid =
 	in()
 end
 
-
-module V4V = struct
-
-let add ~xc ~xs ~hvm domid =
-	debug "Device.V4V.add %d" domid;
-
-	let frontend = { domid = domid; kind = V4V; devid = 0 } in
-	let backend  = { domid = 0    ; kind = V4V; devid = 0 } in
-	let device   = { backend = backend; frontend = frontend } in
-	let back = [
-		"frontend-id", sprintf "%u" domid;
-		"state", string_of_int (Xenbus.int_of Xenbus.Unknown);
-	] in
-	let front = [
-		"backend-id", string_of_int 0;
-		"state", string_of_int (Xenbus.int_of Xenbus.Initialising);
-	] in
-	Generic.add_device ~xs device back front;
-	()
-
-let hard_shutdown ~xs (x: device) =
-	debug "Device.V4V.hard_shutdown %s" (string_of_device x);
-	()
-
-let clean_shutdown ~xs (x: device) =
-	debug "Device.V4V.clean_shutdown %s" (string_of_device x);
-	()
-end
-
 module Console = struct
 
 type consback = XenConsoled | Ioemu
@@ -1608,7 +1579,6 @@ let hard_shutdown ~xs (x: device) = match (x.backend.kind, x.frontend.kind) with
   | Vfb,_ -> Vfb.hard_shutdown ~xs x
   | Vkb,_ -> Vkb.hard_shutdown ~xs x
   | Vsnd,_ -> Vsnd.hard_shutdown ~xs x
-  | V4V,_ -> V4V.hard_shutdown ~xs x
   | Vtpm,_ -> ()
   | Console,_ -> Console.hard_shutdown ~xs x
 
@@ -1621,7 +1591,6 @@ let clean_shutdown ~xs (x: device) = match (x.backend.kind, x.frontend.kind) wit
   | Vfb,_ -> Vfb.clean_shutdown ~xs x
   | Vkb,_ -> Vkb.clean_shutdown ~xs x
   | Vsnd,_ -> Vsnd.clean_shutdown ~xs x
-  | V4V,_ -> V4V.clean_shutdown ~xs x
   | Vtpm,_ -> ()
   | Console,_ -> Console.clean_shutdown ~xs x
 

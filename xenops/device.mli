@@ -224,11 +224,6 @@ sig
 	val add : xc:Xc.handle -> xs:Xs.xsh -> hvm:bool -> instance:int -> Xc.domid -> unit
 end
 
-module V4V :
-sig
-	val add : xc:Xc.handle -> xs:Xs.xsh -> hvm:bool -> Xc.domid -> unit
-end
-
 module Vsnd :
 sig
 	val add : xc:Xc.handle -> xs:Xs.xsh -> hvm:bool -> Xc.domid -> unit
