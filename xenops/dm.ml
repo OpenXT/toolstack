@@ -197,7 +197,6 @@ let stubdom_helpers =
 	[
 		{ path = "/usr/lib/xen/bin/atapi_pt_helper" };
 		{ path = "/usr/lib/xen/bin/audio_helper_start" };
-		{ path = "/usr/lib/xen/bin/pci-dm-helper" }
 	]
 		
 let fork_stubdom_helpers ~xs uuid target_domid stubdom_domid =
