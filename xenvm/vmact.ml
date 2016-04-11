@@ -204,30 +204,9 @@ let dbus_send_one ?(timeout=60.) debug msg =
 		in
 	drain ()
 
-let storage_vdi_message uuid meth =
-	let dbus_service = "com.citrix.xenclient.storehouse" in
-	let dbus_path = (sprintf "/vdi/%s" (String.replace "-" "_" uuid)) in
-	let dbus_interface = dbus_service ^ ".vdi" in
-	let dbus_method = meth in
-	DBus.Message.new_method_call dbus_service dbus_path dbus_interface dbus_method
-
 let storage_get_blockdevice blockid =
-	let msg = storage_vdi_message blockid "open" in
-	(* no parameter *)
-	match dbus_send_one "get blockdevice" msg with
-	| None      -> failwith "couldn't make disk available, service failed."
-	| Some rmsg -> match DBus.Message.get rmsg with
-		| [ DBus.String blkdev ] ->
-			let () = Hashtbl.add externalVDImap blockid blkdev in
-			blkdev
-		| _                      -> failwith "unexpected format received"
-
-let storage_release_blockdevice blockid =
-	let msg = storage_vdi_message blockid "close" in
-	(* no parameter *)
-	match dbus_send_one "release blockdevice" msg with
-	| None      -> failwith "couldn't make disk released, service failed."
-	| Some rmsg -> Hashtbl.remove externalVDImap blockid
+	(* Storehouse and com.citrix.xenclient.storehouse no longer exist *)
+	failwith "Storehouse VDI feature no longer available"
 
 let prepare_disk ~xs state disk = match disk.disk_physty with
 	| Xenops Device.Vbd.Vhd ->
