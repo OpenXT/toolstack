@@ -1398,7 +1398,25 @@ let add ~xc ~xs ~hvm ?(protocol=Protocol_Native) domid =
 		"protocol", (string_of_protocol protocol);
 		"state", string_of_int (Xenbus.int_of Xenbus.Initialising);
 	] in
+        let dbus_send_msg ~bus ~dest ~path ~intf ~serv ~params =
+            let msg = DBus.Message.new_method_call dest path intf serv in
+            DBus.Message.append msg params;
+            let rep = DBus.Connection.send_with_reply_and_block bus msg (-1) in
+            DBus.Message.get rep
+            in
+        let dbus_set_pv_display domid =
+            let bus = DBus.Bus.get DBus.Bus.System in
+            let intf = "com.citrix.xenclient.surfman" in
+            let name = intf in
+            let path = "/" in
+            let serv = "set_pv_display" in
+            let params = [ DBus.Int32 0l; DBus.String "" ] in
+            let ret = dbus_send_msg ~bus ~dest:name ~path ~intf ~serv ~params in
+            info "Surfman: DBus.set_pv_display returned:";
+            List.iter (fun o -> info "%s" (DBus.string_of_ty o)) ret
+        in
 	Generic.add_device ~xs device back front;
+        dbus_set_pv_display domid;
 	()
 
 let hard_shutdown ~xs (x: device) =

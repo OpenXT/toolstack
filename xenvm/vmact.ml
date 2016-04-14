@@ -737,7 +737,8 @@ let add_devices xc xs domid state restore =
 			debug "add_devices: adding vtpm device, backend=%d instance=%d" cfg.vtpm_backend instance;
 			Device.Vtpm.add ~xc ~xs ~hvm:cfg.hvm domid ~instance
 		);
-		if cfg.hvm || cfg.qemu_pv then (
+                (* Only start dmagent for hvm guests *)
+		if cfg.hvm then (
 			(* add device model *)
 			debug "add_devices: adding device model";
 			if use_dm then (
