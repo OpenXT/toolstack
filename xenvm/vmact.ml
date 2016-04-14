@@ -292,7 +292,7 @@ let cd_insert_as ~xc ~xs state ty virtpath physpath =
 				Device.Vbd.extra_backend_keys = None;
 			} in
 			debug "adding new media backend for stubdom";
-			Device.Vbd.add_struct ~xc ~xs ~hvm:false diskinfo stubid;
+			ignore (Device.Vbd.add_struct ~xc ~xs ~hvm:false diskinfo stubid);
 			debug "inserting media";
 			Device.Vbd.media_insert ~xs ~virtpath ~physpath ~phystype:ty stubid;
 			Xenvmlib.Ok
@@ -618,7 +618,6 @@ let add_devices xc xs domid state restore =
 	let nics = get_nics cfg in
 
 	(* create disk snapshots, mount vhds *)
-	let org_disks  = cfg.disks in
 	let snap_disks = prepare_disks ~xs state (make_snapshots state.vm_uuid cfg.disks) in
 	let cfg = { cfg with disks = snap_disks } in
 	(* add disks and nics *)
@@ -759,7 +758,10 @@ let add_devices xc xs domid state restore =
 		| None           -> ()
 		| Some stubdomid ->
 			let path = sprintf "/local/domain/%d/power-state" domid in
-			let exists = try xs.Xs.read path; true with _ -> false in
+			let exists =
+                            try ignore (xs.Xs.read path); true
+                            with _ -> false
+                        in
 			if not exists then (
 				xs.Xs.write path ""
 			);
@@ -824,7 +826,6 @@ let change_vmstate state newstate =
 	)
 
 let stop_vm xc xs state =
-	let domid = state.vm_domid in
 	if state.vm_domid = -1 then
 		warn "not destroying domain: domid = -1"
 	else (

@@ -442,13 +442,10 @@ let monitor_vm state =
 let do_task state (task, args) =
 	let optional_arg default f args s =
 		try f args s with Tasks.Argument_not_found _ -> default
-		in
+	in
 	let optional_arg_nodef f args s =
 		try Some (f args s) with Tasks.Argument_not_found _ -> None
-		in
-
-	let task_desc = List.assoc task Tasks.actions_table in
-	(*maybe assert_vmstate task_vmstate_required;*)
+	in
 	match task with
 	| Tasks.Quit ->
 		notify_quit state; Xenvmlib.Ok
@@ -607,12 +604,7 @@ let do_task state (task, args) =
 		Xenvmlib.Ok
 
 let monitor_rpc_json socket state =
-	let assert_vmstate expected =
-		if expected <> state.vm_lifestate then
-			raise (Vmact.Vm_bad_state (expected, state.vm_lifestate));
-		in
 	let connections = ref [] in
-
 	let reply_error con error =
 		let s = Jsonrpc.response_to_string error in
 		thread_create (fun () ->
@@ -780,14 +772,12 @@ let introspect state msg =
 let monitor_rpc_dbus state =
 	let use_session = state.vm_monitors.monitor_use_dbus_session in
 	let intf = Printf.sprintf "org.xen.vm.uuid_%s" (String.replace "-" "_" state.vm_uuid) in
-	let match_s = sprintf "type='method',interface='%s'" intf in
 	let bus = DBus.Bus.get (if use_session then DBus.Bus.Session else DBus.Bus.System) in
 	let reply = DBus.Bus.request_name bus intf [ DBus.Bus.DoNotQueue ] in
 	(match reply with
 	| DBus.Bus.PrimaryOwner -> ()
 	| _                     -> failwith (Printf.sprintf "cannot grab dbus intf %s" intf)
 	);
-	(*DBus.Bus.add_match bus match_s false;*)
 	(* listen to Network Manager notificatons *)
 	DBus.Bus.add_match bus "type='signal',interface='org.freedesktop.NetworkManager.Device'" false;
 

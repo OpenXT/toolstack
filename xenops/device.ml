@@ -170,9 +170,7 @@ let mount ty readonly path keydir =
 
 let unmount device =
 	info "tap2: unmounting %s" device;
-	try Forkhelpers.execute_command_get_output ~withpath:true "/usr/sbin/tap-ctl"
-					[ "destroy"; "-d"; device; ];
-		()
+	try ignore (Forkhelpers.execute_command_get_output ~withpath:true "/usr/sbin/tap-ctl" [ "destroy"; "-d"; device; ])
 	with Forkhelpers.Spawn_internal_error (log, output, status) ->
 		let s = sprintf "output=%S status=%s" output (string_of_unix_process status) in
 		raise (Unmount_failure (device, s))
@@ -367,7 +365,10 @@ let hard_shutdown_complete = shutdown_done
 
 let clean_shutdown ~xs (x: device) =
 	debug "Device.Vbd.clean_shutdown %s" (string_of_device x);
-	let exists = try xs.Xs.read (backend_path_of_device ~xs x); true with Xb.Noent -> false in
+	let exists =
+            try ignore (xs.Xs.read (backend_path_of_device ~xs x)); true
+            with Xb.Noent -> false
+        in
 	if exists then (
 		if request_shutdown ~xs x false (* normal *) then (
 			(* Allow the domain to reject the request by writing to the error node *)
@@ -391,7 +392,10 @@ let unplug_watch ~xs (x: device) = Watch.map (fun () -> "") (Watch.key_to_disapp
 
 let hard_shutdown ~xs (x: device) =
 	debug "Device.Vbd.hard_shutdown %s" (string_of_device x);
-	let exists = try xs.Xs.read (backend_path_of_device ~xs x); true with Xb.Noent -> false in
+	let exists =
+            try ignore (xs.Xs.read (backend_path_of_device ~xs x)); true
+            with Xb.Noent -> false
+        in
 	if exists then (
 		if request_shutdown ~xs x true (* force *) then (
                     let backend_path = backend_path_of_device ~xs x in
@@ -685,11 +689,8 @@ end
 let common_vif_unplug_watch ~xs (x: device) = Watch.map (fun () -> "") (Watch.key_to_disappear (Hotplug.status_node x))
 let common_vif_error_watch ~xs (x: device) = Watch.value_to_appear (error_path_of_device ~xs x)
 let have_backend ~xs (x: device) =
-	try
-		xs.Xs.read (backend_path_of_device ~xs x);
-		true
-	with Xb.Noent ->
-		false
+	try ignore (xs.Xs.read (backend_path_of_device ~xs x)); true
+	with Xb.Noent -> false
 
 (** When hot-unplugging a device we ask nicely *)
 let common_vif_request_closure ~xs (x: device) =
