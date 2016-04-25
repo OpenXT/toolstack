@@ -198,3 +198,10 @@ let attach bus ev_loop callbacks =
 let detach conn =
 	Conns.remove_conn conn.ev_handle;
 	Eventloop.remove_conn conn.ev_loop conn.ev_handle
+
+let send_msg ~bus ~dest ~path ~intf ~serv ~params =
+	let msg = DBus.Message.new_method_call dest path intf serv in
+	DBus.Message.append msg params;
+	let rep = DBus.Connection.send_with_reply_and_block bus msg (-1) in
+	DBus.Message.get rep
+

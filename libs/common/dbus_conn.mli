@@ -74,3 +74,4 @@ val error_callback : 'a -> Conns.ConnectionMap.key -> Eventloop.error -> unit
 val db_callbacks : Eventloop.conn_callbacks
 val attach : DBus.bus -> Eventloop.t -> callbacks -> t
 val detach : t -> unit
+val send_msg : bus:DBus.bus -> dest:string -> path:string -> intf:string -> serv:string -> params:DBus.ty list -> DBus.ty list
