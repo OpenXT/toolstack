@@ -718,7 +718,8 @@ let add_devices xc xs domid state restore =
                 (* Add the PV keyboard and mouse devices *)
                 if cfg.vkbd then (
                     Device.Vkb.add ~xc ~xs ~hvm:cfg.hvm ~protocol domid 0;
-                    Device.Vkb.add ~xc ~xs ~hvm:cfg.hvm ~protocol domid 1
+                    Device.Vkb.add ~xc ~xs ~hvm:cfg.hvm ~protocol domid 1;
+                    Device.Vkb.dbus_vkbd domid "attach_vkbd"
                 );
 
                 (* Add the PV framebufer device *)

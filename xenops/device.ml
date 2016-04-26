@@ -1423,6 +1423,15 @@ end
 
 module Vkb = struct
 
+let dbus_vkbd domid serv =
+    let bus = DBus.Bus.get DBus.Bus.System in
+    let intf = "com.citrix.xenclient.input" in
+    let name = intf in
+    let path = "/" in
+    let params = [ DBus.Int32 (Int32.of_int domid) ] in
+    ignore (Dbus_conn.send_msg ~bus ~dest:name ~path ~intf ~serv ~params)
+
+
 let add ~xc ~xs ~hvm ?(protocol=Protocol_Native) domid devid =
 	debug "Device.Vkb.add %d" domid;
 
@@ -1440,26 +1449,20 @@ let add ~xc ~xs ~hvm ?(protocol=Protocol_Native) domid devid =
 		"protocol", (string_of_protocol protocol);
 		"state", string_of_int (Xenbus.int_of Xenbus.Initialising);
 	] in
-        let dbus_connect_vkbd domid =
-            let bus = DBus.Bus.get DBus.Bus.System in
-            let intf = "com.citrix.xenclient.input" in
-            let name = intf in
-            let path = "/" in
-            let serv = "connect_vkbd" in
-            let params = [ DBus.Int32 (Int32.of_int domid) ] in
-            ignore (Dbus_conn.send_msg ~bus ~dest:name ~path ~intf ~serv ~params)
-        in
-	Generic.add_device ~xs device back front;
-        if devid = 0 then dbus_connect_vkbd domid
-        else ()
+	Generic.add_device ~xs device back front
 
 let hard_shutdown ~xs (x: device) =
-	debug "Device.Vkb.hard_shutdown %s" (string_of_device x);
-	()
+        debug "Device.Vkb.hard_shutdown %s" (string_of_device x);
+        (* TODO: This should be done only once, actually Vkbd is handled as a
+         * keyboard and a mouse by libxenbackend, so that should be a single
+         * device to this toolstack. The second DBus message will trigger a
+         * harmless warning with input, which is a fine reminder this is not
+         * dealt with properly. *)
+        dbus_vkbd x.frontend.domid "detach_vkbd"
 
 let clean_shutdown ~xs (x: device) =
 	debug "Device.Vkb.clean_shutdown %s" (string_of_device x);
-	()
+        dbus_vkbd x.frontend.domid "detach_vkbd"
 
 end
 
