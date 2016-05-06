@@ -170,9 +170,7 @@ let mount ty readonly path keydir =
 
 let unmount device =
 	info "tap2: unmounting %s" device;
-	try Forkhelpers.execute_command_get_output ~withpath:true "/usr/sbin/tap-ctl"
-					[ "destroy"; "-d"; device; ];
-		()
+	try ignore (Forkhelpers.execute_command_get_output ~withpath:true "/usr/sbin/tap-ctl" [ "destroy"; "-d"; device; ])
 	with Forkhelpers.Spawn_internal_error (log, output, status) ->
 		let s = sprintf "output=%S status=%s" output (string_of_unix_process status) in
 		raise (Unmount_failure (device, s))
@@ -367,7 +365,10 @@ let hard_shutdown_complete = shutdown_done
 
 let clean_shutdown ~xs (x: device) =
 	debug "Device.Vbd.clean_shutdown %s" (string_of_device x);
-	let exists = try xs.Xs.read (backend_path_of_device ~xs x); true with Xb.Noent -> false in
+	let exists =
+            try ignore (xs.Xs.read (backend_path_of_device ~xs x)); true
+            with Xb.Noent -> false
+        in
 	if exists then (
 		if request_shutdown ~xs x false (* normal *) then (
 			(* Allow the domain to reject the request by writing to the error node *)
@@ -391,7 +392,10 @@ let unplug_watch ~xs (x: device) = Watch.map (fun () -> "") (Watch.key_to_disapp
 
 let hard_shutdown ~xs (x: device) =
 	debug "Device.Vbd.hard_shutdown %s" (string_of_device x);
-	let exists = try xs.Xs.read (backend_path_of_device ~xs x); true with Xb.Noent -> false in
+	let exists =
+            try ignore (xs.Xs.read (backend_path_of_device ~xs x)); true
+            with Xb.Noent -> false
+        in
 	if exists then (
 		if request_shutdown ~xs x true (* force *) then (
                     let backend_path = backend_path_of_device ~xs x in
@@ -685,11 +689,8 @@ end
 let common_vif_unplug_watch ~xs (x: device) = Watch.map (fun () -> "") (Watch.key_to_disappear (Hotplug.status_node x))
 let common_vif_error_watch ~xs (x: device) = Watch.value_to_appear (error_path_of_device ~xs x)
 let have_backend ~xs (x: device) =
-	try
-		xs.Xs.read (backend_path_of_device ~xs x);
-		true
-	with Xb.Noent ->
-		false
+	try ignore (xs.Xs.read (backend_path_of_device ~xs x)); true
+	with Xb.Noent -> false
 
 (** When hot-unplugging a device we ask nicely *)
 let common_vif_request_closure ~xs (x: device) =
@@ -1397,7 +1398,17 @@ let add ~xc ~xs ~hvm ?(protocol=Protocol_Native) domid =
 		"protocol", (string_of_protocol protocol);
 		"state", string_of_int (Xenbus.int_of Xenbus.Initialising);
 	] in
+        let dbus_set_pv_display domid =
+            let bus = DBus.Bus.get DBus.Bus.System in
+            let intf = "com.citrix.xenclient.surfman" in
+            let name = intf in
+            let path = "/" in
+            let serv = "set_pv_display" in
+            let params = [ DBus.Int32 (Int32.of_int domid); DBus.String "" ] in
+            ignore (Dbus_conn.send_msg ~bus ~dest:name ~path ~intf ~serv ~params)
+        in
 	Generic.add_device ~xs device back front;
+        dbus_set_pv_display domid;
 	()
 
 let hard_shutdown ~xs (x: device) =
@@ -1411,6 +1422,15 @@ let clean_shutdown ~xs (x: device) =
 end
 
 module Vkb = struct
+
+let dbus_vkbd domid serv =
+    let bus = DBus.Bus.get DBus.Bus.System in
+    let intf = "com.citrix.xenclient.input" in
+    let name = intf in
+    let path = "/" in
+    let params = [ DBus.Int32 (Int32.of_int domid) ] in
+    ignore (Dbus_conn.send_msg ~bus ~dest:name ~path ~intf ~serv ~params)
+
 
 let add ~xc ~xs ~hvm ?(protocol=Protocol_Native) domid devid =
 	debug "Device.Vkb.add %d" domid;
@@ -1429,16 +1449,20 @@ let add ~xc ~xs ~hvm ?(protocol=Protocol_Native) domid devid =
 		"protocol", (string_of_protocol protocol);
 		"state", string_of_int (Xenbus.int_of Xenbus.Initialising);
 	] in
-	Generic.add_device ~xs device back front;
-	()
+	Generic.add_device ~xs device back front
 
 let hard_shutdown ~xs (x: device) =
-	debug "Device.Vkb.hard_shutdown %s" (string_of_device x);
-	()
+        debug "Device.Vkb.hard_shutdown %s" (string_of_device x);
+        (* TODO: This should be done only once, actually Vkbd is handled as a
+         * keyboard and a mouse by libxenbackend, so that should be a single
+         * device to this toolstack. The second DBus message will trigger a
+         * harmless warning with input, which is a fine reminder this is not
+         * dealt with properly. *)
+        dbus_vkbd x.frontend.domid "detach_vkbd"
 
 let clean_shutdown ~xs (x: device) =
 	debug "Device.Vkb.clean_shutdown %s" (string_of_device x);
-	()
+        dbus_vkbd x.frontend.domid "detach_vkbd"
 
 end
 

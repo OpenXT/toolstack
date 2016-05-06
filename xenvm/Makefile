@@ -75,7 +75,7 @@ xenvm-cmd_LIBS = unix.cmxa camomile.cmxa threads.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/common $(TOPLEVEL)/libs/common/tscommon.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/stdext $(TOPLEVEL)/libs/stdext/stdext.cmxa
 
-xenops_LIBS = unix.cmxa threads.cmxa \
+xenops_LIBS = unix.cmxa threads.cmxa dBus.cmxa \
 	$(c_libs) \
 	$(TOPLEVEL)/libs/uuid/uuid.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/mmap $(TOPLEVEL)/libs/mmap/mmap.cmxa \
@@ -91,7 +91,8 @@ xenops_LIBS = unix.cmxa threads.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/scsi $(TOPLEVEL)/libs/scsi/scsi.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/base64 $(TOPLEVEL)/libs/base64/base64.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/common $(TOPLEVEL)/libs/common/tscommon.cmxa \
-	-ccopt -L -ccopt $(TOPLEVEL)/xenops $(TOPLEVEL)/xenops/xenops.cmxa
+	-ccopt -L -ccopt $(TOPLEVEL)/xenops $(TOPLEVEL)/xenops/xenops.cmxa \
+	-ccopt -L -ccopt $(DBUS_DIR) $(DBUS_DIR)/dBus.cmxa
 
 PROGRAMS = xenvm xenvm-cmd xenops
 OCAML_PROGRAM = xenvm xenvm-cmd xenops

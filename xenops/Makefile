@@ -19,12 +19,14 @@
 TOPLEVEL=..
 include $(TOPLEVEL)/common.make
 
+DBUS_DIR = `ocamlfind query dbus`
 LIBS = xenops.cma xenops.cmxa
 
 OCAMLINCLUDE += \
 	-I $(TOPLEVEL)/libs/log -I $(TOPLEVEL)/libs/xb -I $(TOPLEVEL)/libs/xs -I $(TOPLEVEL)/libs/udev -I $(TOPLEVEL)/libs/uuid \
 	-I $(TOPLEVEL)/libs/mmap -I $(TOPLEVEL)/libs/xc -I $(TOPLEVEL)/libs/xg -I $(TOPLEVEL)/libs/eventchn -I $(TOPLEVEL)/libs/scsi \
-	-I $(TOPLEVEL)/libs/netdev -I $(TOPLEVEL)/libs/stdext -I $(TOPLEVEL)/libs/base64 -I $(TOPLEVEL)/libs/common
+	-I $(TOPLEVEL)/libs/netdev -I $(TOPLEVEL)/libs/stdext -I $(TOPLEVEL)/libs/base64 -I $(TOPLEVEL)/libs/common \
+	-I $(DBUS_DIR)
 OCAMLOPTFLAGS += -thread
 
 OBJS_XENOPS_COMMON = \

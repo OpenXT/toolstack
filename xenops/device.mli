@@ -217,6 +217,7 @@ end
 module Vkb :
 sig
 	val add : xc:Xc.handle -> xs:Xs.xsh -> hvm:bool -> ?protocol:protocol -> Xc.domid -> int -> unit
+        val dbus_vkbd : Xc.domid -> string -> unit
 end
 
 module Vtpm :
