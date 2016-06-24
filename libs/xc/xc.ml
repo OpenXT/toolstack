@@ -254,7 +254,6 @@ external domain_set_vpt_align: handle -> domid -> int -> unit = "stub_xc_domain_
 
 external domain_send_s3resume: handle -> domid -> unit = "stub_xc_domain_send_s3resume"
 external domain_get_acpi_s_state: handle -> domid -> int = "stub_xc_domain_get_acpi_s_state"
-external domain_set_xci_service: handle -> domid -> bool -> unit = "stub_xc_domain_set_xci_service"
 
 external domain_disable_migrate: handle -> domid -> unit = "stub_xc_domain_disable_migrate"
 

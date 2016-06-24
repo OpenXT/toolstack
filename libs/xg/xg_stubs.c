@@ -28,6 +28,7 @@
 #include <xen/hvm/hvm_xs_strings.h>
 #include <xen/hvm/params.h>
 #include <xen/hvm/e820.h>
+#include <xc_dom.h>
 #include <sys/mman.h>
 #include "xg_utils.h"
 #include <xentoollog.h>

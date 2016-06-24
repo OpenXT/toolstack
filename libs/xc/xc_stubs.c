@@ -433,7 +433,9 @@ CAMLprim value stub_xc_vcpu_setaffinity(value xch, value domid,
 			c_cpumap[i/8] |= i << (i&7);
 	}
 	retval = xc_vcpu_setaffinity(_H(xch), _D(domid),
-	                             Int_val(vcpu), c_cpumap);
+				     Int_val(vcpu),
+				     c_cpumap, NULL,
+				     XEN_VCPUAFFINITY_HARD);
 	free(c_cpumap);
 
 	if (retval < 0)
@@ -455,7 +457,9 @@ CAMLprim value stub_xc_vcpu_getaffinity(value xch, value domid,
 		failwith_xc(_H(xch));
 
 	retval = xc_vcpu_getaffinity(_H(xch), _D(domid),
-	                             Int_val(vcpu), c_cpumap);
+				     Int_val(vcpu),
+				     c_cpumap, NULL,
+				     XEN_VCPUAFFINITY_HARD);
 	if (retval < 0) {
 		free(c_cpumap);
 		failwith_xc(_H(xch));
@@ -1131,6 +1135,14 @@ CAMLprim value stub_xc_domain_irq_permission(value xch, value domid,
 	CAMLreturn(Val_unit);
 }
 
+static uint32_t encode_sbdf(int domain, int bus, int dev, int func)
+{
+	return  ((uint32_t)domain & 0xffff) << 16 |
+		((uint32_t)bus    &   0xff) << 8  |
+		((uint32_t)dev    &   0x1f) << 3  |
+		((uint32_t)func   &    0x7);
+}
+
 CAMLprim value stub_xc_physdev_map_pirq(value xch, value domid, value pirq)
 {
     CAMLparam3(xch, domid, pirq);
@@ -1176,20 +1188,28 @@ CAMLprim value stub_xc_domain_test_assign_device(value xch, value domid, value d
 	CAMLreturn(Val_bool(ret == 0));
 }
 
-CAMLprim value stub_xc_domain_assign_device(value xch, value domid, value desc)
+static int domain_assign_device_rdm_flag_table[] = {
+    XEN_DOMCTL_DEV_RDM_RELAXED,
+};
+
+CAMLprim value stub_xc_domain_assign_device(value xch, value domid, value desc,
+                                            value rflag)
 {
-	CAMLparam3(xch, domid, desc);
+	CAMLparam4(xch, domid, desc, rflag);
 	int ret;
-	int domain, bus, slot, func;
-	uint32_t bdf;
+	int domain, bus, dev, func;
+	uint32_t sbdf, flag;
 
 	domain = Int_val(Field(desc, 0));
 	bus = Int_val(Field(desc, 1));
-	slot = Int_val(Field(desc, 2));
+	dev = Int_val(Field(desc, 2));
 	func = Int_val(Field(desc, 3));
-	bdf = pci_dev_to_bdf(domain, bus, slot, func);
+	sbdf = encode_sbdf(domain, bus, dev, func);
 
-	ret = xc_assign_device(_H(xch), _D(domid), bdf);
+	ret = Int_val(Field(rflag, 0));
+	flag = domain_assign_device_rdm_flag_table[ret];
+
+	ret = xc_assign_device(_H(xch), _D(domid), sbdf, flag);
 
 	if (ret < 0)
 		failwith_xc(_H(xch));
@@ -1237,17 +1257,6 @@ CAMLprim value stub_xc_domain_set_target(value xch, value domid, value target)
 	if (ret < 0)
 		failwith_xc(_H(xch));
 	CAMLreturn(Val_unit);
-}
-
-CAMLprim value stub_xc_domain_set_xci_service(value xch, value domid, value enable)
-{
-    CAMLparam3(xch, domid, enable);
-    int ret;
-    ret = xc_domain_set_xci_service(_H(xch), _D(domid), Bool_val(enable));
-    if (ret < 0)
-        failwith_xc(_H(xch));
-    CAMLreturn(Val_unit);
-
 }
 
 CAMLprim value stub_xc_domain_set_timer_mode(value handle, value domid, value mode)
