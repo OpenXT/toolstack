@@ -470,13 +470,13 @@ CAMLprim value stub_xc_domain_save(value handle, value fd, value domid,
 	c_domid = _D(domid);
 
 	memset(&callbacks, 0, sizeof(callbacks));
-	callbacks.data = c_domid;
+	callbacks.data = (void*)c_domid;
 	callbacks.suspend = dispatch_suspend;
 
 	caml_enter_blocking_section();
 	r = xc_domain_save(_H(handle), Int_val(fd), c_domid,
 	                   Int_val(max_iters), Int_val(max_factors),
-	                   c_flags, &callbacks, Bool_val(hvm), 0);
+	                   c_flags, &callbacks, Bool_val(hvm));
 	caml_leave_blocking_section();
 	if (r)
 		failwith_oss_xc(_H(handle), "xc_domain_save");
@@ -535,7 +535,7 @@ CAMLprim value stub_xc_domain_restore(value handle, value fd, value domid, value
 	                      c_store_evtchn, &store_mfn, _D(domid),
 	                      c_console_evtchn, &console_mfn, _D(domid),
 			      Bool_val(hvm), f.pae, 0 /*superpages*/,
-		              1, 0, NULL, NULL);
+		              0, NULL);
 	caml_leave_blocking_section();
 	if (r)
 		failwith_oss_xc(_H(handle), "xc_domain_restore");
