@@ -401,6 +401,7 @@ CAMLprim value stub_xc_hvm_build_native(value xc_handle, value domid,
 	int r;
 	struct flags f;
 	struct xc_hvm_build_args args;
+	uint64_t mmio_start, lowmem_end, highmem_end;
 
 	get_platform_flags(&f, _D(domid), platformflags);
 
@@ -411,6 +412,22 @@ CAMLprim value stub_xc_hvm_build_native(value xc_handle, value domid,
 	args.mem_size = (uint64_t) Int_val(mem_max_mib) << 20;
 	args.mem_target = (uint64_t) Int_val(mem_start_mib) << 20;
 	args.image_file_name = image_name_c;
+	/* Need to setup new "out" params below. These are used to calculate
+         * a number of other values in libxc. Also args.nr_vmemranges must
+	 * be zero which will make libxc setup the vmem rananges values.
+	 */
+	args.mmio_size = HVM_BELOW_4G_MMIO_LENGTH;
+	lowmem_end = args.mem_size;
+	highmem_end = 0;
+	mmio_start = (1ull << 32) - args.mmio_size;
+	if (lowmem_end > mmio_start)
+	{
+		highmem_end = (1ull << 32) + (lowmem_end - mmio_start);
+		lowmem_end = mmio_start;
+	}
+	args.lowmem_end = lowmem_end;
+	args.highmem_end = highmem_end;
+	args.mmio_start = mmio_start;
 
 	caml_enter_blocking_section ();
 	if (f.smbios_pt) {
