@@ -1049,10 +1049,7 @@ let build_vm xc xs state f restore =
 		set_cpuid xc domid cfg;
 		set_affinity xc domid cfg;
 		set_cores_per_socket xc domid cfg;
-		if cfg.xciservice then (
-			info "extended service vm permissions enabled";
-			Xc.domain_set_xci_service xc domid true
-		);
+
 		change_vmstate state VmCreatingDevices;
 
 		add_devices xc xs domid state restore;
