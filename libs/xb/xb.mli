@@ -40,6 +40,8 @@ sig
 		| Resume
 		| Set_target
 		| Restrict
+		| XSReset_watches
+		| XSInvalid
 	val to_string : operation -> string
 end
 
