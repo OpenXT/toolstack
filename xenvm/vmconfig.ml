@@ -706,11 +706,6 @@ let list_add cfg field value =
 			(startreg, endreg)
 		| _            -> failwith "bad format for passthrough io. expecting int-int"
 		in
-	let config_bios_string_of_string s =
-		match String.split ~limit:2 '=' s with
-		| k :: v :: [] -> k, v
-		| _            -> failwith "bad format for bios-string. expecting k=v"
-		in
 
 	match field with
 	| "disk"        -> { cfg with disks = cfg.disks @ [ config_disk_of_string value ] }
@@ -724,7 +719,6 @@ let list_add cfg field value =
 	| "cpus-affinity"     -> { cfg with cpus_affinity = cfg.cpus_affinity @ [ config_cpus_affinity_of_string value ] }
 	| "passthrough-io"    -> { cfg with passthrough_ios = cfg.passthrough_ios @ [ config_passthrough_io_of_string value ] }
 	| "passthrough-mmio"  -> { cfg with passthrough_mmios = cfg.passthrough_mmios @ [ config_passthrough_mmio_of_string value ] }
-	| "bios-string"       -> { cfg with bios_strings = cfg.bios_strings @ [ config_bios_string_of_string value ] }
 	| _             -> raise (Unknown_field field)
 
 let list_del cfg field index =
@@ -868,7 +862,7 @@ let of_file uuid error_report file =
 		match k with
 		| "disk" | "vif" | "nic" | "pci" | "cpuid" | "cpus-affinity"
 		| "extra-hvm" | "extra-local-watch" | "extra-vm-watch"
-		| "passthrough-io" | "passthrough-mmio" | "bios-string" | "platform" ->
+		| "passthrough-io" | "passthrough-mmio" | "platform" ->
 			cfg := list_add !cfg k v
 		| "on_halt"    -> cfg := { !cfg with on_halt    = action_of_string v }
 		| "on_restart" -> cfg := { !cfg with on_restart = action_of_string v }
