@@ -728,9 +728,6 @@ let add_devices xc xs domid state restore =
 		(* Add the PV audio device *)
 		if cfg.vsnd then Device.Vsnd.add ~xc ~xs ~hvm:cfg.hvm domid;
 
-		(* Add the V4V device *)
-                if cfg.v4v then Device.V4V.add ~xc ~xs ~hvm:cfg.hvm domid;
-
 		(* Add the VTPM device *)
 		(match cfg.vtpm_instance with
 		| None -> ()

@@ -19,7 +19,7 @@ open Stringext
 open Hashtblext
 open Pervasiveext
 
-type kind = Vif | Vwif | Vbd | Tap | Pci | Vfb | Vkb | V4V | Console | Vsnd | Vtpm
+type kind = Vif | Vwif | Vbd | Tap | Pci | Vfb | Vkb | Console | Vsnd | Vtpm
 
 type devid = int
 (** Represents one end of a device *)
@@ -46,9 +46,9 @@ open D
 open Printf
 
 let string_of_kind = function
-  | Vif -> "vif" | Vwif -> "vwif" | Vbd -> "vbd" | Tap -> "tap" | Pci -> "pci" | Vfb -> "vfb" | Vkb -> "vkbd" | V4V -> "v4v" | Console -> "console" | Vsnd -> "vsnd" | Vtpm -> "vtpm"
+  | Vif -> "vif" | Vwif -> "vwif" | Vbd -> "vbd" | Tap -> "tap" | Pci -> "pci" | Vfb -> "vfb" | Vkb -> "vkbd" | Console -> "console" | Vsnd -> "vsnd" | Vtpm -> "vtpm"
 let kind_of_string = function
-  | "vif" -> Vif | "vwif" -> Vwif | "vbd" -> Vbd | "tap" -> Tap | "pci" -> Pci | "vfb" -> Vfb | "vkbd" -> Vkb | "v4v" -> V4V | "console" -> Console | "vsnd" -> Vsnd | "vtpm" -> Vtpm
+  | "vif" -> Vif | "vwif" -> Vwif | "vbd" -> Vbd | "tap" -> Tap | "pci" -> Pci | "vfb" -> Vfb | "vkbd" -> Vkb | "console" -> Console | "vsnd" -> Vsnd | "vtpm" -> Vtpm
   | x -> raise (Unknown_device_type x)
 
 let string_of_endpoint (x: endpoint) =
