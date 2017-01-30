@@ -29,7 +29,7 @@ SUBDIRS        = libs/uuid libs/stdext libs/mmap \
                  libs/log libs/xc libs/xg libs/eventchn \
                  libs/xb libs/xs libs/netdev \
 		 libs/common \
-                 xenstore xenstored xenops xenvm closeandexec \
+                 xenstore xenstored closeandexec \
 
 STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
                  libs/base64 libs/scsi libs/udev \
@@ -40,7 +40,6 @@ STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
 
 INSTALL_PROGRAMS_BIN = \
 	xenstored/xenstored closeandexec/closeandexec \
-	xenvm/xenops xenvm/xenvm xenvm/xenvm-cmd \
 	scripts/qemu-dm-wrapper-old
 
 -include extra/Makefile
