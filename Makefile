@@ -24,22 +24,22 @@ INSTALL = install
 HOTPLUG_SCRIPTS=block block-frontend tap vif
 
 SUBDIRS        = libs/uuid libs/stdext libs/mmap \
-                 libs/base64 libs/scsi libs/udev \
-                 libs/json libs/jsonrpc libs/http \
-                 libs/log libs/xc libs/xg libs/eventchn \
-                 libs/xb libs/xs libs/netdev \
-		 libs/common \
-                 xenstore xenstored closeandexec \
-
-STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
-                 libs/base64 libs/scsi libs/udev \
+                 libs/base64 \
                  libs/json libs/jsonrpc libs/http \
                  libs/log libs/xc libs/eventchn \
-                 libs/xb libs/xs libs/netdev \
+                 libs/xb libs/xs \
+		 libs/common \
+                 xenstored \
+
+STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
+                 libs/base64 \
+                 libs/json libs/jsonrpc libs/http \
+                 libs/log libs/xc libs/eventchn \
+                 libs/xb libs/xs \
 		 libs/common
 
 INSTALL_PROGRAMS_BIN = \
-	xenstored/xenstored closeandexec/closeandexec \
+	xenstored/xenstored \
 	scripts/qemu-dm-wrapper-old
 
 -include extra/Makefile
