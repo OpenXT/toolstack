@@ -24,7 +24,6 @@ INSTALL = install
 HOTPLUG_SCRIPTS=block block-frontend tap vif
 
 SUBDIRS        = libs/uuid libs/stdext libs/mmap \
-                 libs/base64 \
                  libs/json libs/jsonrpc libs/http \
                  libs/log libs/xc libs/eventchn \
                  libs/xb libs/xs \
@@ -32,7 +31,6 @@ SUBDIRS        = libs/uuid libs/stdext libs/mmap \
                  xenstored \
 
 STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
-                 libs/base64 \
                  libs/json libs/jsonrpc libs/http \
                  libs/log libs/xc libs/eventchn \
                  libs/xb libs/xs \

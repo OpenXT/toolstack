@@ -24,7 +24,7 @@ OCAMLINCLUDE += -I ../stdext -I ../json -I ../jsonrpc -I ../log -I $(DBUS_DIR)
 OCAMLOPTFLAGS += -thread
 OCAMLCFLAGS += -thread
 
-OBJS = debug connection_table async_conn dbus_conn config dbus_server forkhelpers
+OBJS = debug connection_table async_conn dbus_conn config dbus_server
 INTF = $(foreach obj, $(OBJS),$(obj).cmi)
 LIBS = tscommon.cma tscommon.cmxa
 
