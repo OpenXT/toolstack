@@ -28,7 +28,7 @@ OCAMLINCLUDE += -I ../uuid
 OCAML_TEST_INC = -I $(shell ocamlfind query oUnit)
 OCAML_TEST_LIB = $(shell ocamlfind query oUnit)/oUnit.cmxa
 
-OBJS = filenameext stringext hashtblext listext pervasiveext threadext ring qring trie opt unixext bigbuffer vIO varmap eventloop
+OBJS = filenameext stringext pervasiveext ring trie opt unixext bigbuffer eventloop
 INTF = $(foreach obj, $(OBJS),$(obj).cmi)
 LIBS = stdext.cma stdext.cmxa
 
