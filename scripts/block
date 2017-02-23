@@ -28,6 +28,6 @@ add)
         xenstore-write "${XAPI}/hotplug" "online"
         ;;
 remove)
-        xenstore-rm "${XAPI}/hotplug"
+        xenstore-rm "/xapi/${DOMID}"
         ;;
 esac
