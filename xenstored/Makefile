@@ -29,7 +29,7 @@ OBJS = define logging quota perms symbol utils store disk transaction \
 INTF = symbol.cmi
 XENSTOREDLIBS = unix.cmxa \
 	$(TOPLEVEL)/libs/uuid/uuid.cmxa \
-	-ccopt -lxenctrl -ccopt -lxenguest \
+	-cclib -lxenctrl -cclib -lxenguest \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/mmap $(TOPLEVEL)/libs/mmap/mmap.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/log $(TOPLEVEL)/libs/log/log.cmxa \
 	-ccopt -L -ccopt $(TOPLEVEL)/libs/eventchn $(TOPLEVEL)/libs/eventchn/eventchn.cmxa \
