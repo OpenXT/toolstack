@@ -28,7 +28,6 @@ SUBDIRS        = libs/uuid libs/stdext libs/mmap \
                  libs/log libs/xc libs/eventchn \
                  libs/xb libs/xs \
 		 libs/common \
-                 xenstored \
 
 STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
                  libs/json libs/jsonrpc libs/http \
@@ -37,7 +36,6 @@ STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
 		 libs/common
 
 INSTALL_PROGRAMS_BIN = \
-	xenstored/xenstored \
 	scripts/qemu-dm-wrapper-old
 
 -include extra/Makefile
@@ -62,7 +60,6 @@ install-programs: all
 
 install-scripts:
 	$(INSTALL) -d $(DESTDIR)/etc/xensource/.
-	$(INSTALL) xenstored/xenstored.conf $(DESTDIR)/etc/xensource/.
 	$(INSTALL) -d $(DESTDIR)/etc/udev/rules.d $(DESTDIR)/etc/xen/scripts \
 		$(DESTDIR)/etc/ifplugd
 	$(INSTALL) scripts/*.rules $(DESTDIR)/etc/udev/rules.d/.
