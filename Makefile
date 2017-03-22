@@ -23,17 +23,13 @@ INSTALL = install
 
 HOTPLUG_SCRIPTS=block block-frontend tap vif
 
-SUBDIRS        = libs/uuid libs/stdext libs/mmap \
+SUBDIRS        = libs/uuid libs/stdext \
                  libs/json libs/jsonrpc libs/http \
-                 libs/log libs/xc libs/eventchn \
-                 libs/xb libs/xs \
-		 libs/common \
+                 libs/log libs/common
 
-STAGE_SUBDIRS  = libs/uuid libs/stdext libs/mmap \
+STAGE_SUBDIRS  = libs/uuid libs/stdext \
                  libs/json libs/jsonrpc libs/http \
-                 libs/log libs/xc libs/eventchn \
-                 libs/xb libs/xs \
-		 libs/common
+                 libs/log libs/common
 
 INSTALL_PROGRAMS_BIN = \
 	scripts/qemu-dm-wrapper-old
@@ -59,7 +55,6 @@ install-programs: all
 	$(INSTALL) $(INSTALL_PROGRAMS_BIN) $(DESTDIR)/usr/bin
 
 install-scripts:
-	$(INSTALL) -d $(DESTDIR)/etc/xensource/.
 	$(INSTALL) -d $(DESTDIR)/etc/udev/rules.d $(DESTDIR)/etc/xen/scripts \
 		$(DESTDIR)/etc/ifplugd
 	$(INSTALL) scripts/*.rules $(DESTDIR)/etc/udev/rules.d/.
