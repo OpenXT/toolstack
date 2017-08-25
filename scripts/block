@@ -25,6 +25,10 @@ XAPI=/xapi/${DOMID}/hotplug/${TYPE}/${DEVID}
 
 case "$1" in
 add)
+        PARAMS=$(xenstore-read "${XENBUS_PATH}/params")
+        MINOR=$(stat -c '%T' ${PARAMS})
+        xenstore-write "${XENBUS_PATH}/physical-device" "fe:${MINOR}"
+        xenstore-write "${XENBUS_PATH}/physical-device-path" "${PARAMS}"
         xenstore-write "${XAPI}/hotplug" "online"
         ;;
 remove)
