@@ -199,8 +199,6 @@ external domain_get_acpi_s_state: handle -> domid -> int = "stub_xc_domain_get_a
 external domain_set_target: handle -> domid -> domid -> unit
 	= "stub_xc_domain_set_target"
 
-external domain_set_xci_service: handle -> domid -> bool -> unit = "stub_xc_domain_set_xci_service"
-
 external domain_disable_migrate: handle -> domid -> unit = "stub_xc_domain_disable_migrate"
 
 external hvm_check_pvdriver : handle -> domid -> bool = "stub_xc_hvm_check_pvdriver"

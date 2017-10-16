@@ -1033,13 +1033,6 @@ let build_vm xc xs state f restore =
 	let cfg = state.vm_cfg in
 	let domid = state.vm_domid in
 	try
-		let dom_path = xs.Xs.getdomainpath domid in
-		Xs.transaction xs
-			(fun t ->
-				 List.iter (fun (k,v) ->
-						    t.Xst.write (dom_path ^ "/bios-strings/" ^ k) v
-					   ) cfg.bios_strings
-			);
 		Unixext.with_flock_ex buildlock_fd (fun () -> f state cfg);
 
 		if cfg.disable_migrate then (
@@ -1049,10 +1042,7 @@ let build_vm xc xs state f restore =
 		set_cpuid xc domid cfg;
 		set_affinity xc domid cfg;
 		set_cores_per_socket xc domid cfg;
-		if cfg.xciservice then (
-			info "extended service vm permissions enabled";
-			Xc.domain_set_xci_service xc domid true
-		);
+
 		change_vmstate state VmCreatingDevices;
 
 		add_devices xc xs domid state restore;

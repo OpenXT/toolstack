@@ -384,6 +384,94 @@ static int hvm_build_set_params(xc_interface *xch, int domid,
 	return 0;
 }
 
+/*
+ * This function was hoisted out of libxl. It is a required step in building
+ * an HVM. Note that the RDM support is not being used and is stubbed out.
+ *
+ * Original comment:
+ *
+ * Here we're just trying to set these kinds of e820 mappings:
+ *
+ * #1. Low memory region
+ *
+ * Low RAM starts at least from 1M to make sure all standard regions
+ * of the PC memory map, like BIOS, VGA memory-mapped I/O and vgabios,
+ * have enough space.
+ * Note: Those stuffs below 1M are still constructed with multiple
+ * e820 entries by hvmloader. At this point we don't change anything.
+ *
+ * #2. RDM region if it exists
+ *
+ * #3. High memory region if it exists
+ *
+ * Note: these regions are not overlapping since we already check
+ * to adjust them. Please refer to libxl__domain_device_construct_rdm().
+ */
+#define GUEST_LOW_MEM_START_DEFAULT 0x100000
+static int xc_arch_domain_construct_memmap(xc_interface *xch, uint32_t domid,
+                                        struct xc_hvm_build_args *args)
+{
+	int rc = 0;
+	unsigned int nr = 0, i;
+	/* We always own at least one lowmem entry. */
+	unsigned int e820_entries = 1;
+	struct e820entry *e820 = NULL;
+	uint64_t highmem_size =
+		args->highmem_end ? args->highmem_end - (1ull << 32) : 0;
+
+	/* Add all rdm entries.
+	for (i = 0; i < d_config->num_rdms; i++)
+		if (d_config->rdms[i].policy != LIBXL_RDM_RESERVE_POLICY_INVALID)
+			e820_entries++;*/
+
+	/* If we should have a highmem range. */
+	if (highmem_size)
+		e820_entries++;
+
+	/* Not gonna happen, not using RDMs
+	if (e820_entries >= E820MAX) {
+		LOG(ERROR, "Ooops! Too many entries in the memory map!");
+		rc = ERROR_INVAL;
+		goto out;
+	}*/
+
+	e820 = malloc(sizeof(struct e820entry) * e820_entries);
+
+	/* Low memory */
+	e820[nr].addr = GUEST_LOW_MEM_START_DEFAULT;
+	e820[nr].size = args->lowmem_end - GUEST_LOW_MEM_START_DEFAULT;
+	e820[nr].type = E820_RAM;
+	nr++;
+
+	/* RDM mapping
+	for (i = 0; i < d_config->num_rdms; i++) {
+		if (d_config->rdms[i].policy == LIBXL_RDM_RESERVE_POLICY_INVALID)
+			continue;
+
+		e820[nr].addr = d_config->rdms[i].start;
+		e820[nr].size = d_config->rdms[i].size;
+		e820[nr].type = E820_RESERVED;
+		nr++;
+	}*/
+
+	/* High memory */
+	if (highmem_size) {
+		e820[nr].addr = ((uint64_t)1 << 32);
+		e820[nr].size = highmem_size;
+		e820[nr].type = E820_RAM;
+	}
+
+	if (xc_domain_set_memory_map(xch, domid, e820, e820_entries) != 0) {
+		rc = -1;
+		/*goto out;*/
+	}
+
+	free(e820);
+
+/*out:*/
+	return rc;
+}
+
 CAMLprim value stub_xc_hvm_build_native(value xc_handle, value domid,
     value mem_max_mib, value mem_start_mib, value image_name, value platformflags, value store_evtchn, value console_evtchn)
 {
@@ -400,6 +488,7 @@ CAMLprim value stub_xc_hvm_build_native(value xc_handle, value domid,
 	int r;
 	struct flags f;
 	struct xc_hvm_build_args args;
+	uint64_t mmio_start, lowmem_end, highmem_end;
 
 	get_platform_flags(&f, _D(domid), platformflags);
 
@@ -410,6 +499,22 @@ CAMLprim value stub_xc_hvm_build_native(value xc_handle, value domid,
 	args.mem_size = (uint64_t) Int_val(mem_max_mib) << 20;
 	args.mem_target = (uint64_t) Int_val(mem_start_mib) << 20;
 	args.image_file_name = image_name_c;
+	/* Need to setup new "out" params below. These are used to calculate
+         * a number of other values in libxc. Also args.nr_vmemranges must
+	 * be zero which will make libxc setup the vmem rananges values.
+	 */
+	args.mmio_size = HVM_BELOW_4G_MMIO_LENGTH;
+	lowmem_end = args.mem_size;
+	highmem_end = 0;
+	mmio_start = (1ull << 32) - args.mmio_size;
+	if (lowmem_end > mmio_start)
+	{
+		highmem_end = (1ull << 32) + (lowmem_end - mmio_start);
+		lowmem_end = mmio_start;
+	}
+	args.lowmem_end = lowmem_end;
+	args.highmem_end = highmem_end;
+	args.mmio_start = mmio_start;
 
 	caml_enter_blocking_section ();
 	if (f.smbios_pt) {
@@ -432,6 +537,12 @@ CAMLprim value stub_xc_hvm_build_native(value xc_handle, value domid,
 	if (r)
 		failwith_oss_xc(xch, "hvm_build");
 
+	caml_enter_blocking_section ();
+	r = xc_arch_domain_construct_memmap(xch, _D(domid), &args);
+	caml_leave_blocking_section ();
+
+	if (r)
+		failwith_oss_xc(xch, "xc_arch_domain_construct_memmap");
 
 	caml_enter_blocking_section ();
 	r = hvm_build_set_params(xch, _D(domid), Int_val(store_evtchn), &store_mfn,
@@ -469,13 +580,13 @@ CAMLprim value stub_xc_domain_save(value handle, value fd, value domid,
 	c_domid = _D(domid);
 
 	memset(&callbacks, 0, sizeof(callbacks));
-	callbacks.data = c_domid;
+	callbacks.data = (void*)c_domid;
 	callbacks.suspend = dispatch_suspend;
 
 	caml_enter_blocking_section();
 	r = xc_domain_save(_H(handle), Int_val(fd), c_domid,
 	                   Int_val(max_iters), Int_val(max_factors),
-	                   c_flags, &callbacks, Bool_val(hvm), 0);
+	                   c_flags, &callbacks, Bool_val(hvm));
 	caml_leave_blocking_section();
 	if (r)
 		failwith_oss_xc(_H(handle), "xc_domain_save");
@@ -534,7 +645,7 @@ CAMLprim value stub_xc_domain_restore(value handle, value fd, value domid, value
 	                      c_store_evtchn, &store_mfn, _D(domid),
 	                      c_console_evtchn, &console_mfn, _D(domid),
 			      Bool_val(hvm), f.pae, 0 /*superpages*/,
-		              1, 0, NULL, NULL);
+		              0, NULL);
 	caml_leave_blocking_section();
 	if (r)
 		failwith_oss_xc(_H(handle), "xc_domain_restore");
