@@ -45,7 +45,6 @@ OCAML_LIBRARY = stdext
 
 ## OBJS
 threadext.cmo: threadext.ml
-	echo $LDFLAGS
 	$(call quiet-command, $(OCAMLC) $(OCAMLCFLAGS) -thread -c -o $@ $<,MLC,$@)
 
 threadext.cmi: threadext.mli
