@@ -296,7 +296,8 @@ let need_device info device =
 	| "serial" -> info.Dm.hvm && info.Dm.serial <> ""
 	| "net" -> info.Dm.hvm && info.Dm.nics <> []
 	| "drive" -> info.Dm.hvm && List.fold_left (fun b disk -> b ||
-								disk.Device.Vbd.dev_type = Device.Vbd.Disk)
+							disk.Device.Vbd.dev_type = Device.Vbd.Disk ||
+							disk.Device.Vbd.dev_type = Device.Vbd.CDROM)
 								false info.Dm.disks
 	| "cdrom" -> (in_stubdom info && List.fold_left (fun b disk -> b ||
 					disk.Device.Vbd.dev_type = Device.Vbd.CDROM) false
