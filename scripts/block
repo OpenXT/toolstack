@@ -30,6 +30,7 @@ add)
         xenstore-write "${XENBUS_PATH}/physical-device" "fe:${MINOR}"
         xenstore-write "${XENBUS_PATH}/physical-device-path" "${PARAMS}"
         xenstore-write "${XAPI}/hotplug" "online"
+        xenstore-write "${XENBUS_PATH}/hotplug-status" "connected"
         ;;
 remove)
         xenstore-rm "/xapi/${DOMID}"
