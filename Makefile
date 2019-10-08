@@ -31,9 +31,6 @@ STAGE_SUBDIRS  = libs/uuid libs/stdext \
                  libs/json libs/jsonrpc libs/http \
                  libs/log libs/common
 
-INSTALL_PROGRAMS_BIN = \
-	scripts/qemu-dm-wrapper-old
-
 -include extra/Makefile
 
 .PHONY: build build-stage build-nostage $(SUBDIRS)
@@ -50,10 +47,6 @@ stage: $(STAGE_SUBDIRS)
 		$(MAKE) --no-print-directory -C $$dir stage || exit 1; \
 	done
 
-install-programs: all
-	$(INSTALL) -d $(DESTDIR)/usr/bin
-	$(INSTALL) $(INSTALL_PROGRAMS_BIN) $(DESTDIR)/usr/bin
-
 install-scripts:
 	$(INSTALL) -d $(DESTDIR)/etc/udev/rules.d $(DESTDIR)/etc/xen/scripts \
 		$(DESTDIR)/etc/ifplugd
@@ -62,7 +55,7 @@ install-scripts:
 		$(DESTDIR)/etc/xen/scripts
 	$(INSTALL) scripts/ifplugd.* $(DESTDIR)/etc/ifplugd/.
 
-install: install-programs install-scripts
+install: install-scripts
 
 clean:
 	for dir in $(SUBDIRS); do \
