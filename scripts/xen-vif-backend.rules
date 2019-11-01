@@ -1,1 +1,1 @@
-SUBSYSTEM=="xen-backend", KERNEL=="vif*", RUN+="/etc/xen/scripts/vif $env{ACTION}"
+SUBSYSTEM=="xen-backend", KERNEL=="vif*|vwif*", RUN+="/etc/xen/scripts/vif $env{ACTION}"
