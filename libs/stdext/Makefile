@@ -56,14 +56,17 @@ threadext.cmx: threadext.ml
 .PHONY: install uninstall stage
 
 install: $(LIBS) META
-	ocamlfind install -destdir $(DESTDIR)$(shell ocamlfind printconf destdir) -ldconf ignore stdext META $(INTF) $(LIBS) *.a *.so *.cmx
+	ocamlfind install -destdir $(DESTDIR)$(shell ocamlfind printconf destdir) \
+		-ldconf ignore stdext META $(INTF) $(LIBS) \
+		$(wildcard *.a) $(wildcard *.so) $(wildcard *.cmx)
 
 uninstall:
 	ocamlfind remove stdext
 
 stage: libs META
 	ocamlfind remove stdext
-	ocamlfind install stdext -ldconf ignore META $(INTF) $(LIBS) *.a *.so *.cmx
+	ocamlfind install stdext -ldconf ignore META $(INTF) $(LIBS) \
+		$(wildcard *.a) $(wildcard *.so) $(wildcard *.cmx)
 
 
 include $(TOPLEVEL)/Makefile.rules
