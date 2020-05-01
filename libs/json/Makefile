@@ -20,8 +20,8 @@ TOPLEVEL=../..
 include $(TOPLEVEL)/common.make
 
 PACKAGES = camomile
-OCAMLC   = ocamlfind ocamlc -package $(PACKAGES)
-OCAMLOPT = ocamlfind ocamlopt -package $(PACKAGES)
+OCAMLCFLAGS += -package $(PACKAGES)
+OCAMLOPTFLAGS += -package $(PACKAGES)
 
 OBJS = json json_parse json_conv
 INTF = $(foreach obj, $(OBJS),$(obj).cmi)
